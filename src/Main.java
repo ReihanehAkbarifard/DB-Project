@@ -1,7 +1,12 @@
 import javax.swing.*;
 import java.sql.*;
+import java.time.LocalTime;
+import java.util.Random;
 
 public class Main {
+
+    public static LocalTime timeTrack;
+
     public static void main(String[] args) throws SQLException {
         JDialog.setDefaultLookAndFeelDecorated(true);
         JOptionPane.showMessageDialog(null, "--- Welcome To Mini Trello --- ",
@@ -13,7 +18,7 @@ public class Main {
                     , JOptionPane.QUESTION_MESSAGE));
             switch (chosenOption) {
                 case 1:
-                    User currentUser = User.logIn();
+                    Human currentUser = Human.logIn();
                     boolean isInHomePage = true;
                     while (isInHomePage) {
                         while (isInHomePage) {
@@ -240,4 +245,11 @@ public class Main {
 
         }
     }
+    public static String generateOTPCode(){
+        Random rnd = new Random();
+        int number = rnd.nextInt(999999);
+
+        return String.format("%06d", number);
+    }
+
 }

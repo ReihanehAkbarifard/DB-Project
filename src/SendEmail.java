@@ -36,7 +36,7 @@ public class SendEmail {
 
             System.out.println("Email sent successfully");
 
-            //Main.timeTrack = LocalTime.now();
+            Main.timeTrack = LocalTime.now();
 
         } catch (MessagingException e) {
             System.out.println("Failed to send email. Error: " + e.getMessage());
