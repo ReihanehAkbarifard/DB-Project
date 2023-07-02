@@ -114,7 +114,7 @@ public class Human {
                 connection.setAutoCommit(false);
 
                 String sqlQuery = "INSERT INTO human (email, phoneNumber, password, verifyStatus, userRole) " +
-                        "VALUES (?, ?, ?, ?, CAST(? AS role)";
+                        "VALUES (?, ?, ?, ?, ?)";
                 PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
                 preparedStatement.setString(1, email);
                 preparedStatement.setString(2, phoneNumber);
@@ -125,7 +125,7 @@ public class Human {
                 int rows = preparedStatement.executeUpdate();
 
 
-                while (rows > 0) {
+                if (rows > 0) {
                     JOptionPane.showMessageDialog(null, "Your account has been created ,but it " +
                                     "has not still verified. please verify it.",
                             "Alert", JOptionPane.INFORMATION_MESSAGE);
