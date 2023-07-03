@@ -3,7 +3,10 @@
   <component name="ChangeListManager">
     <list default="true" id="e4dae328-3389-4491-b8b4-52699ebef5af" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/DB-Project/Human.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/DB-Project/Human.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/out/production/DB-Project/Main.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/DB-Project/Main.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Human.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Human.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Main.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -41,6 +44,7 @@
     <property name="project.structure.last.edited" value="Modules" />
     <property name="project.structure.proportion" value="0.15" />
     <property name="project.structure.side.proportion" value="0.2" />
+    <property name="settings.editor.selected.configurable" value="editor.preferences.fonts.default" />
   </component>
   <component name="RunManager">
     <configuration name="Main" type="Application" factoryName="Application" temporary="true" nameIsGenerated="true">

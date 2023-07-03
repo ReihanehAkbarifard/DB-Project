@@ -19,8 +19,11 @@ public class Human {
     private Date birthOfDate;
 
 
-    public Human(String email) {
+    public Human(String email, String phoneNumber, String passWord, Role role) {
         this.email = email;
+        this.phoneNumber = phoneNumber;
+        this.passWord = passWord;
+        this.role = role;
     }
 
     public static void signUp() throws SQLException {
@@ -32,11 +35,11 @@ public class Human {
         while (true) {
 
             switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
-                    "your role :\n1. Passenger\n2. Super Admin \n3. Agent"))){
+                    "your role :\n1. Passenger\n2. Super Admin \n3. Agent"))) {
                 case 1:
                     role = Role.PASSENGER;
                     break;
-                case 2 :
+                case 2:
                     role = Role.SUPERADMIN;
                     break;
                 case 3:
@@ -47,12 +50,12 @@ public class Human {
             email = JOptionPane.showInputDialog(null, "Please enter your Email Address:",
                     "Sign-Up page", JOptionPane.QUESTION_MESSAGE);
 
-            boolean isValidMail = false;
-            if ((email.matches("^[a-zA-Z0-9]+[@]{1}+[a-zA-Z0-9]+[.]{1}+[a-zA-Z0-9]+$"))) {
-                isValidMail = true;
-            } else {
-                JOptionPane.showMessageDialog(null, "Please enter valid Email!");
-            }
+//            boolean isValidMail = false;
+//            if ((email.matches("^[a-zA-Z0-9]+[@]{1}+[a-zA-Z0-9]+[.]{1}+[a-zA-Z0-9]+$"))) {
+//                isValidMail = true;
+//            } else {
+//                JOptionPane.showMessageDialog(null, "Please enter valid Email!");
+//            }
 
             if (email.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(null, "Please fill out all parts!");
@@ -70,12 +73,11 @@ public class Human {
 
             if (phoneNumber.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(null, "Please fill out all parts!");
-            } else if (isValidMail) {
+            } else if (true) {
                 try {
                     Class.forName("org.postgresql.Driver");
                     Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
                             "aliiiw", "ali123");
-                    connection.setAutoCommit(false);
 
                     String sqlQuery = "SELECT email, phoneNumber FROM human WHERE email = ?" +
                             " or phoneNumber = ?";
@@ -111,7 +113,6 @@ public class Human {
                 Class.forName("org.postgresql.Driver");
                 Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
                         "aliiiw", "ali123");
-                connection.setAutoCommit(false);
 
                 String sqlQuery = "INSERT INTO human (email, phoneNumber, password, verifyStatus, userRole) " +
                         "VALUES (?, ?, ?, ?, ?)";
@@ -139,24 +140,45 @@ public class Human {
                 preparedStatement.setString(1, email);
                 preparedStatement.setString(2, OTPCode);
 
+                preparedStatement.executeUpdate();
+
                 SendEmail.SendEmailToUser(email, OTPCode);
 
                 while (true) {
-                    if(LocalDateTime.now().getMinute() - Main.timeTrack.getMinute() < 2) {
-                        JOptionPane.showInputDialog(null, "Please Enter the OTP Code :",
-                                "Sign-Up Page", JOptionPane.QUESTION_MESSAGE);
+                    if (LocalDateTime.now().getMinute() - Main.timeTrack.getMinute() < 2) {
 
-                    }
-                    else {
+                        sqlQuery = "SELECT otp FROM human_otp WHERE email = ?";
+                        preparedStatement = connection.prepareStatement(sqlQuery);
+                        preparedStatement.setString(1, email);
+                        ResultSet resultSet = preparedStatement.executeQuery();
+
+                        while (resultSet.next()) {
+                            String otpByHuman = JOptionPane.showInputDialog(null, "Please Enter the OTP Code :",
+                                    "Sign-Up Page", JOptionPane.QUESTION_MESSAGE);
+                            if (resultSet.getString(1).equals(otpByHuman)) {
+                                JOptionPane.showMessageDialog(null, "You have signed in successfully",
+                                        "verification", JOptionPane.INFORMATION_MESSAGE);
+                                sqlQuery = "UPDATE human SET verifyStatus = ? WHERE email = ?";
+                                preparedStatement = connection.prepareStatement(sqlQuery);
+                                preparedStatement.setBoolean(1, true);
+                                preparedStatement.setString(2, email);
+                                preparedStatement.executeUpdate();
+
+                                break;
+                            }
+
+                        }
+
+                    } else {
                         JOptionPane.showMessageDialog(null, "verification time is over",
-                                "verification" , JOptionPane.INFORMATION_MESSAGE);
+                                "verification", JOptionPane.INFORMATION_MESSAGE);
                     }
-                }
+                    sqlQuery = "DELETE FROM human_otp WHERE email = ? ";
+                    preparedStatement = connection.prepareStatement(sqlQuery);
+                    preparedStatement.setString(1, email);
 
-//                while () {
-//                    JOptionPane.showMessageDialog(null, "Your account has been verified",
-//                            "verification", JOptionPane.INFORMATION_MESSAGE);
-//                }
+                    preparedStatement.executeUpdate();
+                }
 
 
             } catch (ClassNotFoundException e) {
@@ -166,72 +188,147 @@ public class Human {
 
     }
 
-//    Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
-//            "autoReconnect=true&useSSL=false", "root", "");
-//
-//    PreparedStatement preparedStatement = connection.prepareStatement("Select * from users where username = ? " +
-//            "or email = ?");
-//            preparedStatement.setString(1,userName);
-//            preparedStatement.setString(2,email);
-//    ResultSet resultSet = preparedStatement.executeQuery();
-//            try
-//
-//    {
-//        if (resultSet.next()) {
-//            JOptionPane.showMessageDialog(null, "This User Name or Email has Been" +
-//                    " Chosen Before", "Sign-Up page", JOptionPane.INFORMATION_MESSAGE);
-//
-//        } else {
-//            PreparedStatement preparedStatement2 = connection.prepareStatement("Insert into users (username, password, email, " +
-//                    "fullname, bio) values(?, ?, ?, ?, ?)");
-//            preparedStatement2.setString(1, userName);
-//            preparedStatement2.setString(2, passWord);
-//            preparedStatement2.setString(3, email);
-//            preparedStatement2.setString(4, fullName);
-//            preparedStatement2.setString(5, "");
-//            preparedStatement2.executeUpdate();
-//            JOptionPane.showMessageDialog(null, "Your Account Was Registered " +
-//                    "Successfully", "Sign-Up page", JOptionPane.INFORMATION_MESSAGE);
-//
-//        }
-//    } catch(
-//    Exception err)
-//
-//    {
-//        System.out.println(err.toString());
-//    }
-//
-//}
-//
-//    public static Human logIn() throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
-//                "autoReconnect=true&useSSL=false", "root", "");
-//        do {
-//            String userName = JOptionPane.showInputDialog(null, "Please Enter Your username :",
-//                    "logIn page", JOptionPane.QUESTION_MESSAGE);
-//            String passWord = JOptionPane.showInputDialog(null, "Please Enter your passWord :",
-//                    "logIn Page", JOptionPane.QUESTION_MESSAGE);
-//            PreparedStatement preparedStatement = connection.prepareStatement("Select * from Users where username = ? " +
-//                    "and password = ?");
-//            preparedStatement.setString(1, userName);
-//            preparedStatement.setString(2, passWord);
-//            ResultSet resultSet = preparedStatement.executeQuery();
-//            if (resultSet.next()) {
-//                JOptionPane.showMessageDialog(null, "Welcome Dear " +
-//                                resultSet.getString("fullname"), "Sign-Up page",
-//                        JOptionPane.INFORMATION_MESSAGE);
-//                User user = new User(resultSet.getString("fullname"),
-//                        resultSet.getString("username"), resultSet.getString("password"),
-//                        resultSet.getString("email"), resultSet.getInt("primarykey"));
-//                return user;
-//
-//            } else {
-//                JOptionPane.showMessageDialog(null, "User Not Found"
-//                        , "Log-Up page", JOptionPane.INFORMATION_MESSAGE);
-//            }
-//        } while (true);
-//
-//    }
+    public static Human logIn() throws SQLException {
+        String email = null;
+        String passWord = null;
+        String phoneNumber = null;
+        try {
+
+
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+            do {
+
+                ArrayList<String> options = new ArrayList<>();
+                options.add("email");
+                options.add("phoneNumber");
+
+                int chosen = JOptionPane.showOptionDialog(null, "How do you want to log in?\n" +
+                                "Your email or your phoneNumber?" + "\n",
+                        "logIn page",
+                        JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
+                ResultSet resultSet = null;
+                if (chosen == 0) {
+                    email = JOptionPane.showInputDialog(null, "Please Enter your email :",
+                            "logIn Page", JOptionPane.QUESTION_MESSAGE);
+
+                    PreparedStatement preparedStatement = connection.prepareStatement("SELECT * from human where email = ? ");
+                    preparedStatement.setString(1, email);
+                    resultSet = preparedStatement.executeQuery();
+
+
+                    if (resultSet.next()) {
+                        if(resultSet.getBoolean("verifyStatus")){
+                        passWord = JOptionPane.showInputDialog(null, "Please Enter your passWord :",
+                                "logIn Page", JOptionPane.QUESTION_MESSAGE);
+                        preparedStatement = connection.prepareStatement("SELECT passWord from human" +
+                                " where email = ? ");
+                        preparedStatement.setString(1, email);
+                        resultSet = preparedStatement.executeQuery();
+                        }
+                        else {
+                            JOptionPane.showMessageDialog(null, "Your account has not verified yet",
+                                    "logIn Page", JOptionPane.INFORMATION_MESSAGE);
+                        }
+
+
+                        while (resultSet.next()) {
+                            if (resultSet.getString(1).equals(passWord)) {
+                                JOptionPane.showMessageDialog(null, "Welcome Dear ",
+                                        "logIn Page", JOptionPane.INFORMATION_MESSAGE);
+
+                            }
+                            else {
+                                JOptionPane.showMessageDialog(null, "Your password is incorrect" +
+                                                "\nplease try again",
+                                        "logIn Page", JOptionPane.INFORMATION_MESSAGE);
+
+                            }
+                        }
+
+                    }
+                    else {
+                        JOptionPane.showMessageDialog(null, "There is no email" +
+                                        " such that, Please try again", "logIn Page",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        Human.logIn();
+                    }
+
+
+
+                } else if (chosen == 1) {
+                    phoneNumber = JOptionPane.showInputDialog(null, "Please Enter your phoneNumber :",
+                            "logIn Page", JOptionPane.QUESTION_MESSAGE);
+
+                    PreparedStatement preparedStatement = connection.prepareStatement("SELECT * from human where phoneNumber = ? ");
+                    preparedStatement.setString(1, phoneNumber);
+                    resultSet = preparedStatement.executeQuery();
+
+
+                    if (resultSet.next()) {
+                        if(resultSet.getBoolean("verifyStatus")){
+
+                        passWord = JOptionPane.showInputDialog(null, "Please Enter your passWord :",
+                                "logIn Page", JOptionPane.QUESTION_MESSAGE);
+                        preparedStatement = connection.prepareStatement("SELECT passWord from human where phoneNumber = ? ");
+                        preparedStatement.setString(1, phoneNumber);
+                        resultSet = preparedStatement.executeQuery();
+                        }
+                        else {
+                            JOptionPane.showMessageDialog(null, "Your account has not verified yet",
+                                    "logIn Page", JOptionPane.INFORMATION_MESSAGE);
+                        }
+
+                        while (resultSet.next()) {
+                            if (resultSet.getString(1).equals(passWord)) {
+                                JOptionPane.showMessageDialog(null, "Welcome Dear",
+                                        "logIn Page", JOptionPane.INFORMATION_MESSAGE);
+                            }
+                            else {
+                                JOptionPane.showMessageDialog(null, "Your password is incorrect" +
+                                                "\nplease try again",
+                                        "logIn Page", JOptionPane.INFORMATION_MESSAGE);
+
+                            }
+
+                        }
+                    }
+                    else  {
+                        JOptionPane.showMessageDialog(null, "There is no phone number" +
+                                        " such that, Please try again", "Sign-Up page",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        Human.logIn();
+                    }
+
+
+                }
+
+                PreparedStatement preparedStatement = connection.prepareStatement("SELECT * " +
+                        "from human where phoneNumber = ? or email = ? ");
+                preparedStatement.setString(1, phoneNumber);
+                preparedStatement.setString(2, email);
+                resultSet = preparedStatement.executeQuery();
+
+                if (resultSet.next()) {
+                    Human human = new Human(resultSet.getString("email"),
+                            resultSet.getString("phoneNumber"),
+                            resultSet.getString("passWord"),  Role.valueOf(resultSet.getString("userRole")));
+                    return human;
+                }
+
+
+            }
+            while (true);
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+
 //
 //    public void editProfile() throws SQLException {
 //        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +

@@ -7,7 +7,7 @@ public class Main {
 
     public static LocalTime timeTrack;
 
-    public static void main(String[] args) throws SQLException {
+    public static void main(String[] args) throws SQLException, ClassNotFoundException {
         JDialog.setDefaultLookAndFeelDecorated(true);
         JOptionPane.showMessageDialog(null, "--- Welcome To Fly Mars --- ",
                 "Welcome", JOptionPane.INFORMATION_MESSAGE);
@@ -18,7 +18,8 @@ public class Main {
                     , JOptionPane.QUESTION_MESSAGE));
             switch (chosenOption) {
                 case 1:
-//                    Human currentUser = Human.logIn();
+                    Human currentHuman = Human.logIn();
+                    break;
 //                    boolean isInHomePage = true;
 //                    while (isInHomePage) {
 //                        while (isInHomePage) {
@@ -235,7 +236,7 @@ public class Main {
 //                    break;
                 case 2:
                     Human.signUp();
-                    break;
+                    continue;
                 case 3:
                     JOptionPane.showMessageDialog(null, "Thank you ! \uD83D\uDE09",
                             "Exit Page", JOptionPane.INFORMATION_MESSAGE);
