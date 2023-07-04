@@ -19,11 +19,88 @@ public class Human {
     private Date birthOfDate;
 
 
-    public Human(String email, String phoneNumber, String passWord, Role role) {
+    public Human(String email, String phoneNumber, String passWord, Role role, String firstName,
+                 String lastName, int primaryKey) {
         this.email = email;
         this.phoneNumber = phoneNumber;
         this.passWord = passWord;
         this.role = role;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.primaryKey = primaryKey;
+    }
+
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getPassWord() {
+        return passWord;
+    }
+
+    public void setPassWord(String passWord) {
+        this.passWord = passWord;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    public Role getRole() {
+        return role;
+    }
+
+    public void setRole(Role role) {
+        this.role = role;
+    }
+
+    public String getNationalCode() {
+        return nationalCode;
+    }
+
+    public void setNationalCode(String nationalCode) {
+        this.nationalCode = nationalCode;
+    }
+
+    public Date getBirthOfDate() {
+        return birthOfDate;
+    }
+
+    public void setBirthOfDate(Date birthOfDate) {
+        this.birthOfDate = birthOfDate;
+    }
+
+    public int getPrimaryKey() {
+        return primaryKey;
+    }
+
+    public void setPrimaryKey(int primaryKey) {
+        this.primaryKey = primaryKey;
     }
 
     public static void signUp() throws SQLException {
@@ -32,6 +109,10 @@ public class Human {
         String phoneNumber;
         boolean verifyStatus = false;
         Role role = Role.PASSENGER;
+        String firstName;
+        String lastName;
+
+
         while (true) {
 
             switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
@@ -99,6 +180,11 @@ public class Human {
             }
 
             while (true) {
+                firstName = JOptionPane.showInputDialog(null, "Please Enter your firstName :",
+                        "Sign-Up Page", JOptionPane.QUESTION_MESSAGE);
+                lastName = JOptionPane.showInputDialog(null, "Please Enter your lastName :",
+                        "Sign-Up Page", JOptionPane.QUESTION_MESSAGE);
+
                 passWord = JOptionPane.showInputDialog(null, "Please Enter your passWord :",
                         "Sign-Up Page", JOptionPane.QUESTION_MESSAGE);
                 if ((passWord != null) && ((passWord.length() > 4))) {
@@ -114,14 +200,17 @@ public class Human {
                 Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
                         "aliiiw", "ali123");
 
-                String sqlQuery = "INSERT INTO human (email, phoneNumber, password, verifyStatus, userRole) " +
-                        "VALUES (?, ?, ?, ?, ?)";
+                String sqlQuery = "INSERT INTO human (email, phoneNumber, password, verifyStatus, userRole," +
+                        " firstName, lastName) VALUES (?, ?, ?, ?, ?, ?, ?)";
                 PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
                 preparedStatement.setString(1, email);
                 preparedStatement.setString(2, phoneNumber);
                 preparedStatement.setString(3, passWord);
                 preparedStatement.setBoolean(4, verifyStatus);
                 preparedStatement.setObject(5, role, Types.OTHER);
+                preparedStatement.setString(6, firstName);
+                preparedStatement.setString(7, lastName);
+
 
                 int rows = preparedStatement.executeUpdate();
 
@@ -218,43 +307,45 @@ public class Human {
                     resultSet = preparedStatement.executeQuery();
 
 
+                    boolean isTruePassword = true;
+                    ResultSet resultSet1 = null;
                     if (resultSet.next()) {
-                        if(resultSet.getBoolean("verifyStatus")){
-                        passWord = JOptionPane.showInputDialog(null, "Please Enter your passWord :",
-                                "logIn Page", JOptionPane.QUESTION_MESSAGE);
-                        preparedStatement = connection.prepareStatement("SELECT passWord from human" +
-                                " where email = ? ");
-                        preparedStatement.setString(1, email);
-                        resultSet = preparedStatement.executeQuery();
-                        }
-                        else {
-                            JOptionPane.showMessageDialog(null, "Your account has not verified yet",
-                                    "logIn Page", JOptionPane.INFORMATION_MESSAGE);
-                        }
-
-
-                        while (resultSet.next()) {
-                            if (resultSet.getString(1).equals(passWord)) {
-                                JOptionPane.showMessageDialog(null, "Welcome Dear ",
+                        while (isTruePassword) {
+                            if (resultSet.getBoolean("verifyStatus")) {
+                                passWord = JOptionPane.showInputDialog(null, "Please Enter your passWord :",
+                                        "logIn Page", JOptionPane.QUESTION_MESSAGE);
+                                preparedStatement = connection.prepareStatement("SELECT passWord from human" +
+                                        " where email = ? ");
+                                preparedStatement.setString(1, email);
+                                resultSet1 = preparedStatement.executeQuery();
+                            } else {
+                                JOptionPane.showMessageDialog(null, "Your account has not verified yet",
                                         "logIn Page", JOptionPane.INFORMATION_MESSAGE);
-
                             }
-                            else {
-                                JOptionPane.showMessageDialog(null, "Your password is incorrect" +
-                                                "\nplease try again",
-                                        "logIn Page", JOptionPane.INFORMATION_MESSAGE);
 
+
+                            while (resultSet1.next()) {
+                                if (resultSet1.getString(1).equals(passWord)) {
+                                    JOptionPane.showMessageDialog(null, "Welcome Dear ",
+                                            "logIn Page", JOptionPane.INFORMATION_MESSAGE);
+                                    isTruePassword = false;
+
+                                } else {
+                                    JOptionPane.showMessageDialog(null, "Your password is incorrect" +
+                                                    "\nplease try again",
+                                            "logIn Page", JOptionPane.INFORMATION_MESSAGE);
+
+
+                                }
                             }
+
                         }
-
-                    }
-                    else {
+                    } else {
                         JOptionPane.showMessageDialog(null, "There is no email" +
                                         " such that, Please try again", "logIn Page",
                                 JOptionPane.INFORMATION_MESSAGE);
                         Human.logIn();
                     }
-
 
 
                 } else if (chosen == 1) {
@@ -267,15 +358,14 @@ public class Human {
 
 
                     if (resultSet.next()) {
-                        if(resultSet.getBoolean("verifyStatus")){
+                        if (resultSet.getBoolean("verifyStatus")) {
 
-                        passWord = JOptionPane.showInputDialog(null, "Please Enter your passWord :",
-                                "logIn Page", JOptionPane.QUESTION_MESSAGE);
-                        preparedStatement = connection.prepareStatement("SELECT passWord from human where phoneNumber = ? ");
-                        preparedStatement.setString(1, phoneNumber);
-                        resultSet = preparedStatement.executeQuery();
-                        }
-                        else {
+                            passWord = JOptionPane.showInputDialog(null, "Please Enter your passWord :",
+                                    "logIn Page", JOptionPane.QUESTION_MESSAGE);
+                            preparedStatement = connection.prepareStatement("SELECT passWord from human where phoneNumber = ? ");
+                            preparedStatement.setString(1, phoneNumber);
+                            resultSet = preparedStatement.executeQuery();
+                        } else {
                             JOptionPane.showMessageDialog(null, "Your account has not verified yet",
                                     "logIn Page", JOptionPane.INFORMATION_MESSAGE);
                         }
@@ -284,8 +374,7 @@ public class Human {
                             if (resultSet.getString(1).equals(passWord)) {
                                 JOptionPane.showMessageDialog(null, "Welcome Dear",
                                         "logIn Page", JOptionPane.INFORMATION_MESSAGE);
-                            }
-                            else {
+                            } else {
                                 JOptionPane.showMessageDialog(null, "Your password is incorrect" +
                                                 "\nplease try again",
                                         "logIn Page", JOptionPane.INFORMATION_MESSAGE);
@@ -293,8 +382,7 @@ public class Human {
                             }
 
                         }
-                    }
-                    else  {
+                    } else {
                         JOptionPane.showMessageDialog(null, "There is no phone number" +
                                         " such that, Please try again", "Sign-Up page",
                                 JOptionPane.INFORMATION_MESSAGE);
@@ -313,7 +401,9 @@ public class Human {
                 if (resultSet.next()) {
                     Human human = new Human(resultSet.getString("email"),
                             resultSet.getString("phoneNumber"),
-                            resultSet.getString("passWord"),  Role.valueOf(resultSet.getString("userRole")));
+                            resultSet.getString("passWord"),
+                            Role.valueOf(resultSet.getString("userRole")), resultSet.getString("firstName"),
+                            resultSet.getString("lastName"), resultSet.getInt("id"));
                     return human;
                 }
 
@@ -328,68 +418,530 @@ public class Human {
     }
 
 
+    public static void passengerPanel(Human passenger) throws SQLException {
+        boolean isInHomePage = true;
+        while (isInHomePage) {
+            int chosenOption = Integer.parseInt(JOptionPane.showInputDialog(null,
+                    "Please choose an option :\n1. buy ticket\n2. See Profile\n3. Log Out",
+                    "Home page", JOptionPane.QUESTION_MESSAGE));
+            switch (chosenOption) {
+                case 1:
+                    switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
+                            "an option :\n1. search for a ticket \n2. my reserved tickets\n" +
+                            "3. my purchased tickets\n4. back"))) {
+                        case 1:
+                            boolean isInSearchForTicketWithFilter = true;
+                            while (isInSearchForTicketWithFilter) {
+                                switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
+                                        "your travel type :\n1. domestic flight \n2. foreign flight\n" +
+                                        "3. train\n4. bus\n5. back"))) {
+                                    case 1:
+                                        searchForDomesticFlight(passenger);
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
+                                    case 2:
+                                        break;
+                                    case 5:
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
+                                }
+                            }
+                        case 2:
+                            while (true) {
+                                passenger.showAllMyReservedTickets(passenger);
+                            }
+                    }
+//
+                case 2:
+                    switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
+                            "an option :\n1. Show all my detail\n2. Edit Profile\n3. Delete Profile\n4. back"))) {
+                        case 1:
+                            passenger.seeProfile();
+                            break;
+                        case 2:
+                            passenger.editProfile();
+                            break;
+                        case 3:
+                            //passenger.deleteProfile();
+                            isInHomePage = false;
+                            break;
+                        case 4:
+                            break;
+                    }
+                    break;
+//                                case 3:
+//                                    JOptionPane.showMessageDialog(null, "Logged Out successfully",
+//                                            "Logout Page", JOptionPane.INFORMATION_MESSAGE);
+//                                    isInHomePage = false;
+//                                    break;
+//
+//
 
-//
-//    public void editProfile() throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
-//                "autoReconnect=true&useSSL=false", "root", "");
-//        int chosenOpt = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Choose an Option Which You" +
-//                        " Want to edit :\n1. username\n2. password\n3 .bio\n4. back", "Edit Profile",
-//                JOptionPane.QUESTION_MESSAGE));
-//        switch (chosenOpt) {
-//            case 1:
-//                String newUserName = JOptionPane.showInputDialog(null, "Please Enter your new " +
-//                        "name", "Edit username", JOptionPane.QUESTION_MESSAGE);
-//                PreparedStatement preparedStatement = connection.prepareStatement("UPDATE users SET username = ? WHERE " +
-//                        "username = ?");
-//                preparedStatement.setString(1, newUserName);
-//                preparedStatement.setString(2, this.getUserID());
-//                preparedStatement.executeUpdate();
-//                JOptionPane.showMessageDialog(null, "Your username has edited " +
-//                        "successfully", "Edit username", JOptionPane.INFORMATION_MESSAGE);
-//                setUserID(newUserName);
-//                break;
-//            case 2:
-//                String newPassword = JOptionPane.showInputDialog(null, "Please Enter your new " +
-//                        "password", "Edit password", JOptionPane.QUESTION_MESSAGE);
-//                preparedStatement = connection.prepareStatement("UPDATE Users SET password = ? WHERE " +
-//                        "password = ?");
-//                preparedStatement.setString(1, getPassWord());
-//                preparedStatement.setString(2, newPassword);
-//                JOptionPane.showMessageDialog(null, "Your password has edited " +
-//                        "successfully", "Edit password", JOptionPane.INFORMATION_MESSAGE);
-//                setPassWord(newPassword);
-//                break;
-//            case 3:
-//                String bio = JOptionPane.showInputDialog(null, "Please Enter your new bio "
-//                        , "Edit bio", JOptionPane.QUESTION_MESSAGE);
-//                preparedStatement = connection.prepareStatement("UPDATE Users SET bio = ? WHERE " +
-//                        "username = ?");
-//                preparedStatement.setString(1, bio);
-//                preparedStatement.setString(2, getUserID());
-//                preparedStatement.executeUpdate();
-//                JOptionPane.showMessageDialog(null, "Your bio has edited " +
-//                        "successfully", "Edit bio", JOptionPane.INFORMATION_MESSAGE);
-//                setBio(bio);
-//                break;
-//            case 4:
-//                break;
-//
-//        }
-//
-//    }
-//
-//    public void seeProfile() throws SQLException {
-//        StringBuilder allInformation = new StringBuilder();
-//        if (getBio() == null) {
-//            bio = " ";
-//        }
-//        allInformation.append("user name : " + this.userID + "\n").append("full name : " + this.fullName + "\n")
-//                .append("email : " + this.email + "\n").append("bio : " + bio + "\n");
-//        JOptionPane.showMessageDialog(null, allInformation, "See Profile",
-//                JOptionPane.INFORMATION_MESSAGE);
-//    }
-//
+
+            }
+        }
+    }
+
+
+    public void editProfile() throws SQLException {
+
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+            int chosenOpt = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Choose an Option Which You" +
+                            " Want to edit :\n1. Name\n2. Last Name\n3 .National code\n4. back", "Edit Profile",
+                    JOptionPane.QUESTION_MESSAGE));
+            switch (chosenOpt) {
+                case 1:
+                    String newFirstName = JOptionPane.showInputDialog(null, "Please Enter your new " +
+                            "first name", "Edit firstName", JOptionPane.QUESTION_MESSAGE);
+                    PreparedStatement preparedStatement = connection.prepareStatement("UPDATE human SET firstName = ? WHERE " +
+                            "email = ?");
+                    preparedStatement.setString(1, newFirstName);
+                    preparedStatement.setString(2, this.getEmail());
+                    preparedStatement.executeUpdate();
+                    JOptionPane.showMessageDialog(null, "Your fistName has edited " +
+                            "successfully", "Edit username", JOptionPane.INFORMATION_MESSAGE);
+                    setFirstName(newFirstName);
+                    break;
+                case 2:
+                    String newLastName = JOptionPane.showInputDialog(null, "Please Enter your new " +
+                            "last name", "Edit last name", JOptionPane.QUESTION_MESSAGE);
+                    preparedStatement = connection.prepareStatement("UPDATE human SET lastName = ? WHERE " +
+                            "email = ?");
+                    preparedStatement.setString(1, newLastName);
+                    preparedStatement.setString(2, getEmail());
+                    JOptionPane.showMessageDialog(null, "Your LastName has edited " +
+                            "successfully", "Edit last name", JOptionPane.INFORMATION_MESSAGE);
+                    setPassWord(newLastName);
+                    break;
+                case 3:
+                    String newPassWord = JOptionPane.showInputDialog(null, "Please Enter your new " +
+                            "PassWord", "Edit PassWord", JOptionPane.QUESTION_MESSAGE);
+                    preparedStatement = connection.prepareStatement("UPDATE human SET passWord = ? WHERE " +
+                            "email = ?");
+                    preparedStatement.setString(1, newPassWord);
+                    preparedStatement.setString(2, getEmail());
+                    JOptionPane.showMessageDialog(null, "Your PassWord has edited " +
+                            "successfully", "Edit password", JOptionPane.INFORMATION_MESSAGE);
+                    setPassWord(newPassWord);
+                    break;
+                case 4:
+                    break;
+
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void seeProfile() throws SQLException {
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+
+            StringBuilder allInformation = new StringBuilder();
+
+            allInformation.append("first name : " + this.firstName + "\n").append("last name : " + this.lastName + "\n")
+                    .append("email : " + this.email + "\n").append("phone number : " + this.phoneNumber + "\n")
+                    .append("logged in as " + this.role + "\n").append("date of birth : " + this.birthOfDate + "\n")
+                    .append("national code : " + this.nationalCode + "\n");
+            JOptionPane.showMessageDialog(null, allInformation, "See Profile",
+                    JOptionPane.INFORMATION_MESSAGE);
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+
+    public static void searchForDomesticFlight(Human passenger) throws SQLException {
+        ArrayList<Integer> pkOfTravels = new ArrayList<>();
+        StringBuilder allTravels = new StringBuilder();
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+            switch (Integer.parseInt(JOptionPane.showInputDialog(null,
+                    "On what basis do you want to filter it? :\n1. origin and destination \n" +
+                            "2. origin and destination and price\n3. origin and destination and date\n" +
+                            "4. origin and destination and price and date\n5. back"))) {
+                case 1:
+                    String origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    String destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+
+
+                    int idOriginCity1 = 0;
+                    PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, origin);
+                    ResultSet resultSetCity1 = preparedStatement.executeQuery();
+                    if (resultSetCity1.next()) {
+                        idOriginCity1 = resultSetCity1.getInt("id");
+                    }
+                    int idOriginCity2 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, destination);
+                    ResultSet resultSetCity2 = preparedStatement.executeQuery();
+                    if (resultSetCity2.next()) {
+                        idOriginCity2 = resultSetCity2.getInt("id");
+                    }
+
+
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                            "and destination = ? and vehicle = ?");
+                    preparedStatement.setInt(1, idOriginCity1);
+                    preparedStatement.setInt(2, idOriginCity2);
+                    preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                    ResultSet resultSet = preparedStatement.executeQuery();
+
+                    if (resultSet.next()) {
+
+                        boolean isNullOrigin = getCountryFromCity(origin) == null;
+                        boolean isNullDestination = getCountryFromCity(destination) == null;
+
+                        if (!isNullOrigin && !isNullDestination) {
+                            if (!getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination))) {
+                                JOptionPane.showMessageDialog(null, "It's a domestic flight," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else {
+
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                        "and destination = ? and vehicle = ?");
+                                preparedStatement.setInt(1, idOriginCity1);
+                                preparedStatement.setInt(2, idOriginCity2);
+                                preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                                resultSet = preparedStatement.executeQuery();
+
+                                int counter = 1;
+                                while (resultSet.next()) {
+
+
+                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
+                                            append("time : " + resultSet.getString("time") + "\n").append("origin : " +
+                                                    origin + "\n").
+                                            append("destination : " + destination + "\n").
+                                            append("remaining seats : " + resultSet.getString("seatsRemain") + "\n");
+                                    counter++;
+
+                                }
+
+                                int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                                                " you want to reserve a ticket for it\n0 - Back\n" + allTravels,
+                                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                                if (myTravel > 0) {
+                                    passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
+                                } else if (myTravel == 0) {
+                                    return;
+                                }
+                            }
+
+                        } else {
+                            JOptionPane.showMessageDialog(null, "there is no origin or destination such that " +
+                                            "please try again", "ticket reservation",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
+                    }
+
+
+                case 2:
+
+            }
+
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String getCountryFromCity(String city) throws SQLException {
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT country from city where cityName = ?");
+            preparedStatement.setString(1, city);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            if (resultSet.next()) {
+                String country = resultSet.getString("country");
+                return country;
+            }
+
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public void reserveTicket(int idOfTravel) throws SQLException {
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT price from travel" +
+                    " where id = ?");
+            preparedStatement.setInt(1, idOfTravel);
+            ResultSet resultSet = preparedStatement.executeQuery();
+            int price = 0;
+            if (resultSet.next()) {
+                price = resultSet.getInt("price");
+            }
+
+
+            preparedStatement = connection.prepareStatement("INSERT INTO ticket" +
+                    "(travelId, finalPrice, ticketStatus) VALUES (?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+
+            preparedStatement.setInt(1, idOfTravel);
+            preparedStatement.setInt(2, price);
+            preparedStatement.setObject(3, TicketStatus.Reserve, Types.OTHER);
+            preparedStatement.executeUpdate();
+
+            ResultSet primaryKey = preparedStatement.getGeneratedKeys();
+
+            int ticketId = 0;
+            if (primaryKey.next()) {
+                System.out.println("inja");
+                ticketId = primaryKey.getInt(1);
+            }
+
+
+            preparedStatement = connection.prepareStatement("INSERT INTO passenger_ticket" +
+                    "(idPassenger, idTicket) VALUES (?, ?)");
+            preparedStatement.setInt(1, getPrimaryKey());
+            preparedStatement.setInt(2, ticketId);
+            preparedStatement.executeUpdate();
+
+
+            JOptionPane.showMessageDialog(null, "you reserved the ticket successfully"
+                    , "ticket reservation", JOptionPane.INFORMATION_MESSAGE);
+
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void showAllMyReservedTickets(Human passenger) throws SQLException {
+        StringBuilder allTravels = new StringBuilder();
+        ArrayList<Integer> pkOfTravels = new ArrayList<>();
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT idTicket from passenger_ticket" +
+                    " where idPassenger = ?");
+            preparedStatement.setInt(1, getPrimaryKey());
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            int idTicket = 0;
+
+            int counter = 1;
+            while (resultSet.next()) {
+                idTicket = resultSet.getInt("idTicket");
+
+                preparedStatement = connection.prepareStatement("SELECT travelId from ticket" +
+                        " where id = ?");
+                preparedStatement.setInt(1, idTicket);
+                ResultSet idOfTravel = preparedStatement.executeQuery();
+
+                int travelId = 0;
+                if (idOfTravel.next()) {
+                    travelId = idOfTravel.getInt("travelId");
+                }
+
+                preparedStatement = connection.prepareStatement("SELECT * from travel" +
+                        " where id = ?");
+                preparedStatement.setInt(1, travelId);
+                ResultSet travelOfTicket = preparedStatement.executeQuery();
+
+
+                if (travelOfTicket.next()) {
+                    System.out.println("hasimmm");
+                    pkOfTravels.add(travelOfTicket.getInt("id"));
+                    allTravels = allTravels.append(counter + " - " + "Date :" + travelOfTicket.getString("date") + "\n").
+                            append("time :" + travelOfTicket.getString("time") + "\n").append("origin :" +
+                                    getCityByItsPrimaryKey(travelOfTicket.getInt("origin")) + "\n").
+                            append("destination :" + getCityByItsPrimaryKey(travelOfTicket.getInt("destination")) + "\n").
+                            append("remaining seats :" + travelOfTicket.getString("seatsRemain"));
+                    counter++;
+                }
+
+            }
+            int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                            "you want to buy a ticket for it\n0 - Back\n" + allTravels,
+                    "buy ticket", JOptionPane.QUESTION_MESSAGE));
+            if (myTravel > 0) {
+                passenger.buyTicket(idTicket);
+            } else if (myTravel == 0) {
+            }
+
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public String getCityByItsPrimaryKey(int primaryKey) throws SQLException {
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT cityName from city" +
+                    " where id = ?");
+            preparedStatement.setInt(1, primaryKey);
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            if (resultSet.next()) {
+                return resultSet.getString(1);
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+    public void buyTicket(int idOfTicket) throws SQLException {
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * from offer_passenger" +
+                    " where userId = ?");
+            preparedStatement.setInt(1, getPrimaryKey());
+            ResultSet resultSet = preparedStatement.executeQuery();
+
+            int offerPassengerId = 0;
+            int offerId = 0;
+            if (resultSet.next()) {
+                offerPassengerId = resultSet.getInt("id");
+                offerId = resultSet.getInt("offerId");
+            }
+            preparedStatement = connection.prepareStatement("INSERT INTO ticket" +
+                    "(offerId) VALUES (?)");
+            preparedStatement.setInt(1, offerPassengerId);
+            preparedStatement.executeUpdate();
+
+
+            preparedStatement = connection.prepareStatement("SELECT offerId from ticket" +
+                    " where id = ?");
+            preparedStatement.setInt(1, idOfTicket);
+            resultSet = preparedStatement.executeQuery();
+
+            int seatsRemain = 0;
+            if (resultSet.next()) {
+                seatsRemain = resultSet.getInt("seatsRemain");
+            }
+
+            if (seatsRemain > 0) {
+
+                ArrayList<String> options = new ArrayList<>();
+                options.add("Yes");
+                options.add("No");
+
+                int price = resultSet.getInt("price");
+
+                int chosen = JOptionPane.showOptionDialog(null, "the price of this travel is: " +
+                                price + "\ndo you have any discount code?"
+                        , "buy ticket",
+                        JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
+                switch (chosen) {
+                    case 0:
+                        String discountCode = JOptionPane.showInputDialog(null, "Please Enter the " +
+                                        "discount code",
+                                "buy ticket", JOptionPane.QUESTION_MESSAGE);
+                        preparedStatement = connection.prepareStatement("SELECT * from offer" +
+                                " where offerId = ?");
+                        preparedStatement.setInt(1, offerId);
+                        ResultSet offer = preparedStatement.executeQuery();
+
+                        int finalPrice;
+                        if (offer.next()) {
+                            int limitation = offer.getInt("limitation");
+                            int discountAmount = offer.getInt("discountAmount");
+                            if (offer.getInt("limitation") < price) {
+                                finalPrice = limitation * discountAmount;
+
+                            } else {
+                                finalPrice = price * discountAmount;
+
+
+                            }
+                            preparedStatement = connection.prepareStatement("UPDATE ticket SET finalPrice = ? " +
+                                    " where offerId = ?");
+                            preparedStatement.setInt(1, finalPrice);
+                            preparedStatement.setInt(2, idOfTicket);
+                            preparedStatement.executeQuery();
+                            JOptionPane.showMessageDialog(null, "your discount has " +
+                                    "the new price is :" + finalPrice, "buy ticket", JOptionPane.INFORMATION_MESSAGE);
+
+
+                        } else {
+                            JOptionPane.showMessageDialog(null, "there is no discount code such that"
+                                    , "buy ticket", JOptionPane.INFORMATION_MESSAGE);
+                        }
+                        ArrayList<String> options1 = new ArrayList<>();
+                        options.add("Yes");
+                        options.add("No");
+
+                        int chosen1 = JOptionPane.showOptionDialog(null, "do you want to buy it?"
+                                , "buy ticket",
+                                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
+                        switch (chosen1){
+                            case 0:
+                                preparedStatement = connection.prepareStatement("UPDATE ticket SET ticketStatus = ? " +
+                                        " where offerId = ?");
+                                preparedStatement.setObject(1, TicketStatus.Paid, Types.OTHER);
+                                preparedStatement.setInt(2, idOfTicket);
+                                preparedStatement.executeQuery();
+
+                                JOptionPane.showMessageDialog(null, "your purchase has been done successfully"
+                                        , "buy ticket", JOptionPane.INFORMATION_MESSAGE);
+                            case 1:
+                                return;
+
+                        }
+                        break;
+
+
+                    case 2:
+                        break;
+                }
+
+            } else {
+                JOptionPane.showMessageDialog(null, "this travel is full, you cant buy a " +
+                                "ticket for this trip.", "buy ticket",
+                        JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+
+    }
+}
+
+
 //    public void deleteProfile() throws SQLException {
 //        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
 //                "autoReconnect=true&useSSL=false", "root", "");
@@ -403,682 +955,4 @@ public class Human {
 //
 //    }
 //
-//    public void createWorkSpace() throws SQLException {
-//        String title = null;
-//        while (true) {
-//            title = JOptionPane.showInputDialog(null, "Please Enter the title of WorkSpace :",
-//                    "createWorkSpace", JOptionPane.QUESTION_MESSAGE);
-//            if ((title != null) && ((title.length() > 4 && title.length() < 30))) {
-//                break;
-//            } else {
-//                JOptionPane.showMessageDialog(null, "Not accepted ! Please try another one\nYour username must have at least 5 characters ",
-//                        "createWorkSpace", JOptionPane.INFORMATION_MESSAGE);
-//            }
-//        }
-//
-//        int numStatus = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the status of WorkSpace :\n" +
-//                "1. Public\n2. Private", "createWorkSpace", JOptionPane.QUESTION_MESSAGE));
-//        String status = null;
-//        switch (numStatus) {
-//            case 1:
-//                status = "Public";
-//                break;
-//            case 2:
-//                status = "Private";
-//        }
-//
-//        JDialog.setDefaultLookAndFeelDecorated(true);
-//        Object[] selectionValues = {"IT", "Education", "Business", "Marketing", "Human Recourse",
-//                "Other"};
-//        String initialSelection = "IT";
-//        Object type = JOptionPane.showInputDialog(null, "Please Enter the type of WorkSpace :",
-//                "Create WorkSpace", JOptionPane.QUESTION_MESSAGE, null, selectionValues, initialSelection);
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
-//                "autoReconnect=true&useSSL=false", "root", "");
-//
-//        PreparedStatement preparedStatement = connection.prepareStatement("Insert into workspace(workspacename, status ," +
-//                " type) values(?, ?, ?)");
-//        preparedStatement.setString(1, title);
-//        preparedStatement.setString(2, status);
-//        preparedStatement.setString(3, (String) type);
-//        preparedStatement.executeUpdate();
-//        JOptionPane.showMessageDialog(null, "Your WorkSpace Was Added " +
-//                "Successfully", "Create WorkSpace page", JOptionPane.INFORMATION_MESSAGE);
-//
-//        preparedStatement = connection.prepareStatement("SELECT primarykey FROM workspace ORDER BY primarykey DESC LIMIT 1 ");
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        resultSet.next();
-//        int index = resultSet.getInt(1);
-//        preparedStatement = connection.prepareStatement("Insert into connectionbetweenuserandworkspace" +
-//                " values(?, ?, ?)");
-//        preparedStatement.setInt(1, getPrimaryKey());
-//        preparedStatement.setInt(2, index);
-//        preparedStatement.setString(3, "Admin");
-//        preparedStatement.executeUpdate();
-//
-//
-//    }
-//
-//    public int seeWorkSpaces() throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
-//                "autoReconnect=true&useSSL=false", "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select primarykeyworkspace from connectionbetweenuserandworkspace WHERE " +
-//                "connectionbetweenuserandworkspace.primarykeyuser = ?\n");
-//        preparedStatement.setInt(1, getPrimaryKey());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        StringBuilder allWorkSpaces = new StringBuilder();
-//
-//        getMyWorkSpaces().clear();
-//        while (resultSet.next()) {
-//            preparedStatement = connection.prepareStatement("select * from workspace where primarykey = ?");
-//            preparedStatement.setString(1, resultSet.getString("primarykeyworkspace"));
-//            ResultSet rs = preparedStatement.executeQuery();
-//            if (rs.next()) {
-//                WorkSpace workSpace = new WorkSpace(rs.getString("workspacename"),
-//                        rs.getString("status"), rs.getString("type"),
-//                        rs.getInt("primarykey"));
-//                getMyWorkSpaces().add(workSpace);
-//            }
-//
-//        }
-//        int count = 1;
-//        for (WorkSpace workSpace : getMyWorkSpaces()) {
-//            allWorkSpaces.append(count + " - " + workSpace.getWorkSpaceName());
-//            allWorkSpaces.append("\n");
-//            count++;
-//        }
-//        int index = Integer.parseInt(JOptionPane.showInputDialog(null, "Enter a number to show more." +
-//                        "\nenter 0 to back\n0 - back\n" + allWorkSpaces,
-//                "all workspaces", JOptionPane.QUESTION_MESSAGE));
-//        return index;
-//
-//    }
-//
-//    public void searchForWorkSpaces() throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
-//                "autoReconnect=true&useSSL=false", "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * from workspace where status = ?");
-//        String find = "Public";
-//        preparedStatement.setString(1, find);
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        StringBuilder allWorkSpaces = new StringBuilder();
-//        while (resultSet.next()) {
-//            allWorkSpaces.append(resultSet.getString("workspacename") + "\n");
-//            WorkSpace workSpace = new WorkSpace(resultSet.getString("workspacename"),
-//                    resultSet.getString("status"), resultSet.getString("type"),
-//                    resultSet.getInt("primarykey"));
-//            WorkSpace.publicWorkSpaced.add(workSpace);
-//        }
-//        JOptionPane.showMessageDialog(null, allWorkSpaces, "All Public workspaces",
-//                JOptionPane.INFORMATION_MESSAGE);
-//    }
-//
-//    public void showDetailsOfWorkspaces(WorkSpace workSpace) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
-//                "autoReconnect=true&useSSL=false", "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select primarykeyuser, role" +
-//                " from connectionbetweenuserandworkspace WHERE primarykeyworkspace = ?\n");
-//        preparedStatement.setInt(1, workSpace.getPrimaryKey());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        StringBuilder allMembers = new StringBuilder();
-//        workSpace.getRole().clear();
-//        while (resultSet.next()) {
-//            String _role = resultSet.getString("role");
-//            String _username = null;
-//            preparedStatement = connection.prepareStatement("select username from users where primarykey = ?");
-//            preparedStatement.setString(1, resultSet.getString("primarykeyuser"));
-//            ResultSet rs = preparedStatement.executeQuery();
-//            if (rs.next()) {
-//                _username = rs.getString("username");
-//                workSpace.getRole().put(_username, _role);
-//            }
-//
-//        }
-//        int count = 1;
-//        for (String username : workSpace.getRole().keySet()) {
-//            allMembers.append(count + " - " + username + " : " +
-//                    workSpace.getRole().get(username) + "\n");
-//            count++;
-//        }
-//
-//        JOptionPane.showMessageDialog(null, "workspace name : "
-//                + workSpace.getWorkSpaceName() + "\n" + "Status : " + workSpace.getStatus() + "\n" +
-//                "Type : " + workSpace.getType() + "\n" + allMembers);
-//    }
-//
-//    public void addMembersToWorkSpace(WorkSpace workSpace) throws SQLException {
-//
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false"
-//                , "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select role from " +
-//                " connectionbetweenuserandworkspace where primarykeyuser = ? and primarykeyworkspace = ?");
-//        preparedStatement.setInt(1, getPrimaryKey());
-//        preparedStatement.setInt(2, workSpace.getPrimaryKey());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        if (resultSet.next()) {
-//            if (!resultSet.getString("role").equals("Admin")) {
-//                JOptionPane.showMessageDialog(null, "You are not allowed to " +
-//                                "add member \nbecause you are not admin !",
-//                        "Add Member", JOptionPane.INFORMATION_MESSAGE);
-//            } else {
-//                String useridToAdd = JOptionPane.showInputDialog(null, "Please enter the user id which " +
-//                        "you want to add :", "Add Member", JOptionPane.QUESTION_MESSAGE);
-//                preparedStatement = connection.prepareStatement("select primarykey" +
-//                        " from users where username = ?");
-//                preparedStatement.setString(1, useridToAdd);
-//                resultSet = preparedStatement.executeQuery();
-//                int userid = 0;
-//                if (resultSet.next()) {
-//                    userid = resultSet.getInt(1);
-//                }
-//                preparedStatement = connection.prepareStatement("insert into connectionbetweenuserandworkspace values(?, ?, ?)");
-//                if (userid != 0) {
-//                    preparedStatement.setInt(1, userid);
-//                    preparedStatement.setInt(2, workSpace.getPrimaryKey());
-//                    preparedStatement.setString(3, "Member");
-//                    preparedStatement.executeUpdate();
-//                    JOptionPane.showMessageDialog(null, "User was added to workspace!",
-//                            "Add Member", JOptionPane.INFORMATION_MESSAGE);
-//
-//                } else {
-//                    JOptionPane.showMessageDialog(null, "User not found!",
-//                            "Add Member", JOptionPane.INFORMATION_MESSAGE);
-//                }
-//            }
-//        }
-//
-//    }
-//
-//
-//    public int showBoards(WorkSpace workSpace) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * " +
-//                "from boards where workspace_id = ?");
-//        preparedStatement.setInt(1, workSpace.getPrimaryKey());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        workSpace.getBoards().clear();
-//        while (resultSet.next()) {
-//            Board board = new Board(resultSet.getString("boardname"),
-//                    resultSet.getInt("board_id"));
-//            workSpace.getBoards().add(board);
-//        }
-//
-//        int count = 1;
-//        StringBuilder allBoards = new StringBuilder();
-//
-//        for (Board board : workSpace.getBoards()) {
-//            allBoards.append(count + " - " + board.getTitle() + "\n");
-//            count++;
-//        }
-//        int chosen = Integer.parseInt(JOptionPane.showInputDialog(null, "These are all your boards \n" +
-//                        allBoards + "Please enter the number to show more\n",
-//                "Show all boards", JOptionPane.INFORMATION_MESSAGE));
-//        return chosen;
-//    }
-//
-//    public void addBoards(WorkSpace workSpace) throws SQLException {
-//        String name = null;
-//        while (true) {
-//            name = JOptionPane.showInputDialog(null, "Please enter the" +
-//                    " name of new board :", "add board", JOptionPane.QUESTION_MESSAGE);
-//            if ((name != null) && ((name.length() > 3 && name.length() < 31))) {
-//                break;
-//            } else {
-//                JOptionPane.showMessageDialog(null, "Not accepted ! Please try another one\nYour username must have at least 4 characters and at most 30 characters",
-//                        "add board", JOptionPane.INFORMATION_MESSAGE);
-//            }
-//        }
-//        JOptionPane.showMessageDialog(null, "Successfully add new board",
-//                "Add new board", JOptionPane.INFORMATION_MESSAGE);
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("insert into boards (boardname, " +
-//                "workspace_id ) values(?, ?)");
-//        preparedStatement.setString(1, name);
-//        preparedStatement.setInt(2, workSpace.getPrimaryKey());
-//        preparedStatement.executeUpdate();
-//
-//
-//    }
-//
-//    public int showAllLists(Board board) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * " +
-//                "from lists where board_id = ?");
-//        preparedStatement.setInt(1, board.getBoardId());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        board.getLists().clear();
-//        while (resultSet.next()) {
-//            List list = new List(resultSet.getString("listname"),
-//                    resultSet.getInt("list_id"));
-//            board.getLists().add(list);
-//        }
-//
-//        int count = 1;
-//        StringBuilder allLists = new StringBuilder();
-//        for (List list : board.getLists()) {
-//            allLists.append(count + " - " + list.getName() + "\n");
-//            count++;
-//        }
-//        int chosen = Integer.parseInt(JOptionPane.showInputDialog(null, "These are all your lists" +
-//                        "\nPlease enter the number to show more\n0. Back \n" + allLists,
-//                "Show all lists", JOptionPane.INFORMATION_MESSAGE));
-//        return chosen;
-//    }
-//
-//    public void addLists(Board board) throws SQLException {
-//        String name = null;
-//        while (true) {
-//            name = JOptionPane.showInputDialog(null, "Please enter the" +
-//                    " name of new list :", "add list", JOptionPane.QUESTION_MESSAGE);
-//            if ((name != null) && ((name.length() > 3 && name.length() < 31))) {
-//                break;
-//            } else {
-//                JOptionPane.showMessageDialog(null, "Not accepted ! Please try another one\nYour username must have at least 4 characters and at most 30 characters",
-//                        "add board", JOptionPane.INFORMATION_MESSAGE);
-//            }
-//        }
-//        JOptionPane.showMessageDialog(null, "Successfully add new list",
-//                "Add new list", JOptionPane.INFORMATION_MESSAGE);
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("insert into lists (listname, " +
-//                "board_id ) values(?, ?)");
-//        preparedStatement.setString(1, name);
-//        preparedStatement.setInt(2, board.getBoardId());
-//        preparedStatement.executeUpdate();
-//
-//
-//    }
-//
-//    public int showAllCards(List list) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * " +
-//                "from cards where list_id = ?");
-//        preparedStatement.setInt(1, list.getListId());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        list.getCards().clear();
-//        while (resultSet.next()) {
-//            Card card = new Card(resultSet.getString("cardname"), resultSet.getInt("card_id"),
-//                    resultSet.getString("description"), resultSet.getString("cardname"));
-//            list.getCards().add(card);
-//        }
-//
-//        ArrayList<String> options = new ArrayList<>();
-//        options.add("Back");
-//        for (Card card : list.getCards()) {
-//            options.add(card.getTitle());
-//
-//        }
-//
-//
-//        int chosen = JOptionPane.showOptionDialog(null, "These are all your cards \n",
-//                "Show all cards",
-//                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
-//        return chosen;
-//    }
-//
-//    public void addCard(List list) throws SQLException {
-//        String name = null;
-//        while (true) {
-//            name = JOptionPane.showInputDialog(null, "Please enter the" +
-//                    " name of new card :", "add card", JOptionPane.QUESTION_MESSAGE);
-//            if ((name != null) && ((name.length() > 3 && name.length() < 31))) {
-//                break;
-//            } else {
-//                JOptionPane.showMessageDialog(null, "Not accepted ! Please try another one\nYour username must have at least 4 characters and at most 30 characters",
-//                        "add card", JOptionPane.INFORMATION_MESSAGE);
-//            }
-//        }
-//        JOptionPane.showMessageDialog(null, "Successfully add new card",
-//                "Add new card", JOptionPane.INFORMATION_MESSAGE);
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("insert into cards (cardname, " +
-//                "list_id ,description, label, deadline) values(?, ?, ?, ?, ?)");
-//        preparedStatement.setString(1, name);
-//        preparedStatement.setInt(2, list.getListId());
-//        preparedStatement.setString(3, "");
-//        preparedStatement.setString(4, "");
-//        preparedStatement.setString(5, "");
-//        preparedStatement.executeUpdate();
-//    }
-//
-//    public int showCard(Card card) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * " +
-//                "from cards where card_id = ?");
-//        preparedStatement.setInt(1, card.getCardId());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        StringBuilder allDetails = new StringBuilder();
-//        while (resultSet.next()) {
-//            allDetails.append("name : " + resultSet.getString("cardname") + "\n" +
-//                    "Label : " + resultSet.getString("label") + "\n" + "Description : " +
-//                    resultSet.getString("description") + "\n" +
-//                    "Deadline : " + resultSet.getString("deadline") + "\n");
-//
-//        }
-//
-//        ArrayList<String> options = new ArrayList<>();
-//        options.add("Back");
-//        options.add("Edit and Add sth");
-//        options.add("Move card");
-//        options.add("Archive");
-//        options.add("Message");
-//
-//        int chosen = JOptionPane.showOptionDialog(null, allDetails + "\n",
-//                "Show Card",
-//                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
-//        return chosen;
-//
-//
-//    }
-//
-//    public void moveCard(Board board, Card card) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        ArrayList<String> allListsName = new ArrayList<>();
-//        for (List list1 : board.getLists()) {
-//            allListsName.add(list1.getName());
-//        }
-//
-//
-//        Object type = JOptionPane.showInputDialog(null, "Please Enter the type of WorkSpace :",
-//                "Create WorkSpace", JOptionPane.QUESTION_MESSAGE, null, allListsName.toArray(), allListsName.get(0));
-//        int listId = 0;
-//        for (List list1 : board.getLists()) {
-//            if (list1.getName().equals(type.toString())) {
-//                listId = list1.getListId();
-//            }
-//        }
-//        PreparedStatement preparedStatement = connection.prepareStatement("update cards" +
-//                " set list_id = ? where card_id = ?");
-//        preparedStatement.setInt(1, listId);
-//        preparedStatement.setInt(2, card.getCardId());
-//        preparedStatement.executeUpdate();
-//        JOptionPane.showMessageDialog(null, "Card Moved Successfully",
-//                "Move card", JOptionPane.INFORMATION_MESSAGE);
-//    }
-//
-//    public void editAndAddToCard(Card card) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        Object[] selectionValues = {"Title", "Label", "Description", "Deadline"};
-//        String initialSelection = "Title";
-//        Object type = JOptionPane.showInputDialog(null, "Please Choose the item which you want " +
-//                        "to change :",
-//                "Edit And Add To Card", JOptionPane.QUESTION_MESSAGE, null, selectionValues, initialSelection);
-//        if (type.toString().equals("Label")) {
-//            String newLabel = JOptionPane.showInputDialog(null, "Please enter your new label :",
-//                    "Edit And Add To Card", JOptionPane.QUESTION_MESSAGE);
-//            PreparedStatement preparedStatement = connection.prepareStatement("update cards " +
-//                    "set label = ? where card_id = ? ");
-//            preparedStatement.setString(1, newLabel);
-//            preparedStatement.setInt(2, card.getCardId());
-//            preparedStatement.executeUpdate();
-//            JOptionPane.showMessageDialog(null, "Label Changed Successfully",
-//                    "Change label", JOptionPane.INFORMATION_MESSAGE);
-//
-//        } else if (type.toString().equals("Description")) {
-//            String newDescription = JOptionPane.showInputDialog(null, "Please enter your new description :",
-//                    "Edit And Add To Card", JOptionPane.QUESTION_MESSAGE);
-//            PreparedStatement preparedStatement = connection.prepareStatement("update cards " +
-//                    "set description = ? where card_id = ? ");
-//            preparedStatement.setString(1, newDescription);
-//            preparedStatement.setInt(2, card.getCardId());
-//            preparedStatement.executeUpdate();
-//            JOptionPane.showMessageDialog(null, "Description Changed Successfully",
-//                    "Change Description", JOptionPane.INFORMATION_MESSAGE);
-//        } else if (type.toString().equals("Title")) {
-//            String newTitle = JOptionPane.showInputDialog(null, "Please enter your new title :",
-//                    "Edit And Add To Card", JOptionPane.QUESTION_MESSAGE);
-//            PreparedStatement preparedStatement = connection.prepareStatement("update cards " +
-//                    "set cardname = ? where card_id = ? ");
-//            preparedStatement.setString(1, newTitle);
-//            preparedStatement.setInt(2, card.getCardId());
-//            preparedStatement.executeUpdate();
-//            JOptionPane.showMessageDialog(null, "title Changed Successfully",
-//                    "Change title", JOptionPane.INFORMATION_MESSAGE);
-//        } else if (type.toString().equals("Deadline")) {
-//            String[] year = {"2022", "2023", "2024", "2025", "2026", "2027", "2028", "2029", "2030", "2031", "2032", "2033"};
-//            initialSelection = "2022";
-//            String selectionYear = (String) JOptionPane.showInputDialog(null, "Choose the deadlines year :",
-//                    "Set Deadline", JOptionPane.QUESTION_MESSAGE, null, year, initialSelection);
-//
-//
-//            String[] month = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
-//            initialSelection = "January";
-//            String selectionMonth = (String) JOptionPane.showInputDialog(null, "Choose the deadlines month :",
-//                    "Set Deadline", JOptionPane.QUESTION_MESSAGE, null, month, initialSelection);
-//
-//            String[] days = {"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15",
-//                    "16", "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31"};
-//            initialSelection = "1";
-//            String selectionDay = (String) JOptionPane.showInputDialog(null, "Choose the deadlines Day :",
-//                    "Set Deadline", JOptionPane.QUESTION_MESSAGE, null, days, initialSelection);
-//
-//            String newDeadline = selectionDay + " " + selectionMonth + " " + selectionYear;
-//
-//            PreparedStatement preparedStatement = connection.prepareStatement("update cards " +
-//                    "set deadline = ? where card_id = ? ");
-//            preparedStatement.setString(1, newDeadline);
-//            preparedStatement.setInt(2, card.getCardId());
-//            preparedStatement.executeUpdate();
-//
-//            JOptionPane.showMessageDialog(null, "Deadline is set for : \n\t*** " + newDeadline + " ***",
-//                    "Set Deadline", JOptionPane.INFORMATION_MESSAGE);
-//        }
-//
-//
-//    }
-//
-//    public void archive(WorkSpace workSpace, Board board, List list, Card card) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("update cards set " +
-//                "orglist_id = ? where card_id = ?");
-//        preparedStatement.setInt(1, list.getListId());
-//        preparedStatement.setInt(2, card.getCardId());
-//        preparedStatement.executeUpdate();
-//
-//        preparedStatement = connection.prepareStatement("update cards set " +
-//                "list_id = ? where list_id = ?");
-//        preparedStatement.setInt(1, 0);
-//        preparedStatement.setInt(2, list.getListId());
-//        preparedStatement.executeUpdate();
-//
-//        preparedStatement = connection.prepareStatement("insert into archive (workspace_id, " +
-//                "board_id, list_id, card_id) values(?, ?, ?, ?)");
-//        preparedStatement.setInt(1, workSpace.getPrimaryKey());
-//        preparedStatement.setInt(2, board.getBoardId());
-//        preparedStatement.setInt(3, list.getListId());
-//        preparedStatement.setInt(4, card.getCardId());
-//        preparedStatement.executeUpdate();
-//        list.getCards().remove(card);
-//        JOptionPane.showMessageDialog(null, "card archived successfully",
-//                "Archive", JOptionPane.INFORMATION_MESSAGE);
-//
-//
-//    }
-//
-//
-//    public int showArchives(Board board) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * from cards" +
-//                " where list_id = ?");
-//        preparedStatement.setInt(1, 0);
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        StringBuilder allArchives = new StringBuilder();
-//        board.getArchives().clear();
-//        while (resultSet.next()) {
-//            Card card = new Card(resultSet.getString("cardname"),
-//                    resultSet.getInt("card_id"), resultSet.getInt("orglist_id"));
-//            board.getArchives().add(card);
-//        }
-//        int count = 1;
-//        for (Card card : board.getArchives()) {
-//            allArchives.append(count + " - " + card.getTitle() + "\n");
-//            count++;
-//        }
-//        int index = Integer.parseInt(JOptionPane.showInputDialog(null, "These are all Your archive cards :\n"
-//                + "0 - Back\n" + allArchives, "Archives cards", JOptionPane.QUESTION_MESSAGE));
-//        return index;
-//
-//    }
-//
-//    public void backToList(Card card, Board board) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("update cards set " +
-//                "list_id = ? where card_id = ?");
-//        preparedStatement.setInt(1, card.getOrgListId());
-//        preparedStatement.setInt(2, card.getCardId());
-//        preparedStatement.executeUpdate();
-//        JOptionPane.showMessageDialog(null, "Your card is restored",
-//                "restore card", JOptionPane.INFORMATION_MESSAGE);
-//        board.getArchives().remove(card);
-//
-//
-//    }
-//
-//    public void deleteCard(Card card, Board board) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("delete from cards where " +
-//                "card_id = ?");
-//        preparedStatement.setInt(1, card.getCardId());
-//        preparedStatement.executeUpdate();
-//        JOptionPane.showMessageDialog(null, "Your card is deleted",
-//                "delete card", JOptionPane.INFORMATION_MESSAGE);
-//        board.getArchives().remove(card);
-//
-//    }
-//
-//    public void showAllMessages(Card card) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * from activities where card_id = ?");
-//        preparedStatement.setInt(1, card.getCardId());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//
-//        card.getActivities_message().clear();
-//        while (resultSet.next()) {
-//            String sender = resultSet.getString("username");
-//            String text = resultSet.getString("text");
-//            Activity activity = new Activity(sender, text);
-//            card.getActivities_message().add(activity);
-//
-//        }
-//        StringBuilder text = new StringBuilder();
-//        for (Activity activity : card.getActivities_message()) {
-//            text.append("Sender : " + activity.getSender());
-//            text.append("\n");
-//            text.append(activity.getActivityText());
-//            text.append("\n\n");
-//        }
-//        if (text.equals(null)) {
-//            JOptionPane.showMessageDialog(null, "There is no message here"
-//                    , "Show all messages", JOptionPane.INFORMATION_MESSAGE);
-//        } else {
-//
-//            JOptionPane.showMessageDialog(null, text, "Show all messages",
-//                    JOptionPane.INFORMATION_MESSAGE);
-//        }
-//    }
-//
-//    public void sendMessage(Card card, User user) throws SQLException {
-//        String text = JOptionPane.showInputDialog(null, "Enter your message to send", "Show all messages", JOptionPane.QUESTION_MESSAGE);
-//        Activity activity = new Activity(user.getUserID(), text);
-//        card.getActivities_message().add(activity);
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("insert into activities (card_id, username , text) values(?,?,?)");
-//        preparedStatement.setInt(1, card.getCardId());
-//        preparedStatement.setString(2, user.getUserID());
-//        preparedStatement.setString(3, text);
-//        preparedStatement.executeUpdate();
-//        JOptionPane.showMessageDialog(null, "Your message added successfully", "Add message", JOptionPane.INFORMATION_MESSAGE);
-//    }
-//
-//    public void deleteMessage(Card card) throws SQLException {
-//
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * from activities where card_id = ?");
-//        preparedStatement.setInt(1, card.getCardId());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        card.getActivities_message().clear();
-//        while (resultSet.next()) {
-//            int activity_id = resultSet.getInt("activity_id");
-//            String sender = resultSet.getString("username");
-//            String text = resultSet.getString("text");
-//            Activity activity = new Activity(activity_id, sender, text);
-//            card.getActivities_message().add(activity);
-//        }
-//
-//        StringBuilder text = new StringBuilder();
-//        for (Activity activity : card.getActivities_message()) {
-//            text.append("Activity ID : " + activity.getActivityId());
-//            text.append("\n");
-//            text.append("Sender : " + activity.getSender());
-//            text.append("\n");
-//            text.append(activity.getActivityText());
-//            text.append("\n\n");
-//        }
-//
-//
-//        int numberToDelete = Integer.parseInt(JOptionPane.showInputDialog(null,
-//                "Enter id of message to delete\n" + text, "delete message", JOptionPane.QUESTION_MESSAGE));
-//
-//        preparedStatement = connection.prepareStatement("delete from activities where" +
-//                " activity_id = ?");
-//        preparedStatement.setInt(1, numberToDelete);
-//        preparedStatement.executeUpdate();
-//        JOptionPane.showMessageDialog(null, "This message deleted successfully",
-//                "delete message", JOptionPane.INFORMATION_MESSAGE);
-//    }
-//
-//    public void editMessage(Card card) throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?autoReconnect=true&useSSL=false",
-//                "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("select * from activities where card_id = ?");
-//        preparedStatement.setInt(1, card.getCardId());
-//        ResultSet resultSet = preparedStatement.executeQuery();
-//        card.getActivities_message().clear();
-//        while (resultSet.next()) {
-//            int activity_id = resultSet.getInt("activity_id");
-//            String sender = resultSet.getString("username");
-//            String text = resultSet.getString("text");
-//            Activity activity = new Activity(activity_id, sender, text);
-//            card.getActivities_message().add(activity);
-//        }
-//
-//        StringBuilder text = new StringBuilder();
-//        for (Activity activity : card.getActivities_message()) {
-//            text.append("Activity ID : " + activity.getActivityId());
-//            text.append("\n");
-//            text.append("Sender : " + activity.getSender());
-//            text.append("\n");
-//            text.append(activity.getActivityText());
-//            text.append("\n\n");
-//        }
-//
-//
-//        int numberToEdit = Integer.parseInt(JOptionPane.showInputDialog(null,
-//                "Enter id of message to edit\n" + text, "Edit message", JOptionPane.QUESTION_MESSAGE));
-//        String newText = JOptionPane.showInputDialog(null, "Enter your new message : ", "Edit message", JOptionPane.QUESTION_MESSAGE);
-//        preparedStatement = connection.prepareStatement("update activities set text = ? where activity_id = ?");
-//        preparedStatement.setString(1, newText);
-//        preparedStatement.setInt(2, numberToEdit);
-//        preparedStatement.executeUpdate();
-//        JOptionPane.showMessageDialog(null, "This message updated successfully",
-//                "Edit message", JOptionPane.INFORMATION_MESSAGE);
-//
-//
-//    }
-}
+
