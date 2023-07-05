@@ -4,7 +4,6 @@
     <list default="true" id="e4dae328-3389-4491-b8b4-52699ebef5af" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/out/production/DB-Project/Human.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/DB-Project/Human.class" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/out/production/DB-Project/TicketStatus.class" beforeDir="false" afterPath="$PROJECT_DIR$/out/production/DB-Project/TicketStatus.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/Human.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/Human.java" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />

@@ -1,5 +1,6 @@
 import javax.swing.*;
 import java.sql.*;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -407,6 +408,45 @@ public class Human {
 
 
     public static void passengerPanel(Human passenger) throws SQLException {
+
+        Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                "aliiiw", "ali123");
+
+        PreparedStatement preparedStatement = connection.prepareStatement("SELECT ticketStatus, date, ticket.id " +
+                "from passenger_ticket join ticket on passenger_ticket.idTicket = ticket.id join travel on travel.id = " +
+                "ticket.travelId where idPassenger = ?");
+        preparedStatement.setInt(1, passenger.getPrimaryKey());
+        ResultSet resultSetFirst = preparedStatement.executeQuery();
+
+        String ticketStatus = null;
+        String travelDate;
+        int ticketId;
+        while (resultSetFirst.next()) {
+            ticketStatus = resultSetFirst.getString(1);
+            travelDate = resultSetFirst.getString(2);
+            ticketId = resultSetFirst.getInt(3);
+
+            int isDone = LocalDate.now().compareTo(LocalDate.parse(travelDate));
+            boolean isDoneBool;
+
+            if (isDone >= 0) {
+                isDoneBool = true;
+            } else {
+                isDoneBool = false;
+            }
+
+            if (ticketStatus.equals(TicketStatus.Paid.toString()) && isDoneBool) {
+
+                preparedStatement = connection.prepareStatement("UPDATE ticket SET ticketStatus = ?" +
+                        " WHERE id = ?");
+                preparedStatement.setObject(1, TicketStatus.Done, Types.OTHER);
+                preparedStatement.setInt(2, ticketId);
+                preparedStatement.executeUpdate();
+            }
+
+        }
+
+
         boolean isInHomePage = true;
         while (isInHomePage) {
             int chosenOption = Integer.parseInt(JOptionPane.showInputDialog(null,
@@ -416,18 +456,28 @@ public class Human {
                 case 1:
                     switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
                             "an option :\n1. search for a ticket \n2. my reserved tickets\n" +
-                            "3. my purchased tickets\n4. back"))) {
+                            "3. my purchased tickets\n4. cancel my ticket\n5. rate the travel\n6. back"))) {
                         case 1:
                             boolean isInSearchForTicketWithFilter = true;
                             while (isInSearchForTicketWithFilter) {
                                 switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
-                                        "your travel type :\n1. domestic flight \n2. foreign flight\n" +
+                                        "your travel type :\n1. domestic flight \n2. abroad flight\n" +
                                         "3. train\n4. bus\n5. back"))) {
                                     case 1:
-                                        searchForDomesticFlight(passenger);
+                                        searchForFlight(passenger, 1);
                                         isInSearchForTicketWithFilter = false;
                                         break;
                                     case 2:
+                                        searchForFlight(passenger, 2);
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
+                                    case 3:
+                                        searchForTrainOrBus(passenger, 1);
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
+                                    case 4:
+                                        searchForTrainOrBus(passenger, 2);
+                                        isInSearchForTicketWithFilter = false;
                                         break;
                                     case 5:
                                         isInSearchForTicketWithFilter = false;
@@ -435,9 +485,21 @@ public class Human {
                                 }
                             }
                         case 2:
-                            while (true) {
-                                passenger.showAllMyReservedTickets(passenger);
-                            }
+                            passenger.showAllMyReservedTickets(passenger);
+                            break;
+
+                        case 3:
+                            passenger.showAllMyPurchasedTickets();
+                            break;
+                        case 4:
+                            passenger.cancelTheTravel();
+                            break;
+                        case 5:
+                            passenger.rateToTravel();
+                            break;
+                        case 6:
+                            break;
+
                     }
 
                 case 2:
@@ -453,7 +515,6 @@ public class Human {
                             break;
                     }
                     break;
-
 
 
             }
@@ -536,7 +597,7 @@ public class Human {
     }
 
 
-    public static void searchForDomesticFlight(Human passenger) throws SQLException {
+    public static void searchForFlight(Human passenger, int domesticAbroad) throws SQLException {
         ArrayList<Integer> pkOfTravels = new ArrayList<>();
         StringBuilder allTravels = new StringBuilder();
         try {
@@ -547,7 +608,7 @@ public class Human {
             switch (Integer.parseInt(JOptionPane.showInputDialog(null,
                     "On what basis do you want to filter it? :\n1. origin and destination \n" +
                             "2. origin and destination and price\n3. origin and destination and date\n" +
-                            "4. origin and destination and price and date\n5. back"))) {
+                            "4. origin and destination and price and date\n5. rate according to agency\n6. back"))) {
                 case 1:
                     String origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
                             "ticket reservation", JOptionPane.QUESTION_MESSAGE);
@@ -585,8 +646,14 @@ public class Human {
 
                         if (!isNullOrigin && !isNullDestination) {
                             if (!getCountryFromCity(origin).
-                                    equals(getCountryFromCity(destination))) {
+                                    equals(getCountryFromCity(destination)) && domesticAbroad == 1) {
                                 JOptionPane.showMessageDialog(null, "It's a domestic flight," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else if (getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination)) && domesticAbroad == 2) {
+                                JOptionPane.showMessageDialog(null, "It's an abroad flight," +
                                                 " please enter another origin and destination", "ticket reservation",
                                         JOptionPane.INFORMATION_MESSAGE);
                                 return;
@@ -630,17 +697,311 @@ public class Human {
                             return;
                         }
                     }
-
-
+                    break;
                 case 2:
+                    origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    int startPrice = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the price floor"
+                            , JOptionPane.QUESTION_MESSAGE));
+                    int endPrice = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the price ceiling",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
 
+
+                    idOriginCity1 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, origin);
+                    resultSetCity1 = preparedStatement.executeQuery();
+                    if (resultSetCity1.next()) {
+                        idOriginCity1 = resultSetCity1.getInt("id");
+                    }
+                    idOriginCity2 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, destination);
+                    resultSetCity2 = preparedStatement.executeQuery();
+                    if (resultSetCity2.next()) {
+                        idOriginCity2 = resultSetCity2.getInt("id");
+                    }
+
+
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                    preparedStatement.setInt(1, idOriginCity1);
+                    preparedStatement.setInt(2, idOriginCity2);
+                    preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                    preparedStatement.setInt(4, startPrice);
+                    preparedStatement.setInt(5, endPrice);
+                    resultSet = preparedStatement.executeQuery();
+
+                    if (resultSet.next()) {
+
+                        boolean isNullOrigin = getCountryFromCity(origin) == null;
+                        boolean isNullDestination = getCountryFromCity(destination) == null;
+
+                        if (!isNullOrigin && !isNullDestination) {
+                            if (!getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination)) && domesticAbroad == 1) {
+                                JOptionPane.showMessageDialog(null, "It's a domestic flight," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else if (getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination)) && domesticAbroad == 2) {
+                                JOptionPane.showMessageDialog(null, "It's an abroad flight," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else {
+
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                        "and destination = ? and vehicle = ? and price between ? and ? ");
+                                preparedStatement.setInt(1, idOriginCity1);
+                                preparedStatement.setInt(2, idOriginCity2);
+                                preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                                preparedStatement.setInt(4, startPrice);
+                                preparedStatement.setInt(5, endPrice);
+                                resultSet = preparedStatement.executeQuery();
+
+                                int counter = 1;
+                                while (resultSet.next()) {
+
+
+                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
+                                            append("time : " + resultSet.getString("time") + "\n").append("origin : " +
+                                                    origin + "\n").
+                                            append("destination : " + destination + "\n").
+                                            append("remaining seats : " + resultSet.getString("seatsRemain") + "\n");
+                                    counter++;
+
+                                }
+
+                                int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                                                " you want to reserve a ticket for it\n0 - Back\n" + allTravels,
+                                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                                if (myTravel > 0) {
+                                    passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
+                                } else if (myTravel == 0) {
+                                    return;
+                                }
+                            }
+
+
+                        } else {
+                            JOptionPane.showMessageDialog(null, "there is no origin or destination such that " +
+                                            "please try again", "ticket reservation",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
+                    }
+                    break;
+                case 3:
+                    origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    LocalDate startDate = LocalDate.parse(JOptionPane.showInputDialog(null, "Please Enter start date",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                    LocalDate endDate = LocalDate.parse(JOptionPane.showInputDialog(null, "Please Enter the end date",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+
+
+                    idOriginCity1 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, origin);
+                    resultSetCity1 = preparedStatement.executeQuery();
+                    if (resultSetCity1.next()) {
+                        idOriginCity1 = resultSetCity1.getInt("id");
+                    }
+                    idOriginCity2 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, destination);
+                    resultSetCity2 = preparedStatement.executeQuery();
+                    if (resultSetCity2.next()) {
+                        idOriginCity2 = resultSetCity2.getInt("id");
+                    }
+
+
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                    preparedStatement.setInt(1, idOriginCity1);
+                    preparedStatement.setInt(2, idOriginCity2);
+                    preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                    preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
+                    preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                    resultSet = preparedStatement.executeQuery();
+
+                    if (resultSet.next()) {
+
+                        boolean isNullOrigin = getCountryFromCity(origin) == null;
+                        boolean isNullDestination = getCountryFromCity(destination) == null;
+
+                        if (!isNullOrigin && !isNullDestination) {
+                            if (!getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination)) && domesticAbroad == 1) {
+                                JOptionPane.showMessageDialog(null, "It's a domestic flight," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else if (getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination)) && domesticAbroad == 2) {
+                                JOptionPane.showMessageDialog(null, "It's an abroad flight," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else {
+
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                        "and destination = ? and vehicle = ? and price between ? and ? ");
+                                preparedStatement.setInt(1, idOriginCity1);
+                                preparedStatement.setInt(2, idOriginCity2);
+                                preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                                preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
+                                preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                                resultSet = preparedStatement.executeQuery();
+
+                                int counter = 1;
+                                while (resultSet.next()) {
+
+
+                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
+                                            append("time : " + resultSet.getString("time") + "\n").append("origin : " +
+                                                    origin + "\n").
+                                            append("destination : " + destination + "\n").
+                                            append("remaining seats : " + resultSet.getString("seatsRemain") + "\n");
+                                    counter++;
+
+                                }
+
+                                int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                                                " you want to reserve a ticket for it\n0 - Back\n" + allTravels,
+                                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                                if (myTravel > 0) {
+                                    passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
+                                } else if (myTravel == 0) {
+                                    return;
+                                }
+                            }
+
+
+                        }
+
+
+                    }
+                case 4:
+                    origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    startPrice = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the price floor"
+                            , JOptionPane.QUESTION_MESSAGE));
+                    endPrice = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the price ceiling",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                    startDate = LocalDate.parse(JOptionPane.showInputDialog(null, "Please Enter start date",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                    endDate = LocalDate.parse(JOptionPane.showInputDialog(null, "Please Enter the end date",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+
+
+                    idOriginCity1 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, origin);
+                    resultSetCity1 = preparedStatement.executeQuery();
+                    if (resultSetCity1.next()) {
+                        idOriginCity1 = resultSetCity1.getInt("id");
+                    }
+                    idOriginCity2 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, destination);
+                    resultSetCity2 = preparedStatement.executeQuery();
+                    if (resultSetCity2.next()) {
+                        idOriginCity2 = resultSetCity2.getInt("id");
+                    }
+
+
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                            "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                    preparedStatement.setInt(1, idOriginCity1);
+                    preparedStatement.setInt(2, idOriginCity2);
+                    preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                    preparedStatement.setInt(4, startPrice);
+                    preparedStatement.setInt(5, endPrice);
+                    preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
+                    preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                    resultSet = preparedStatement.executeQuery();
+
+                    if (resultSet.next()) {
+
+                        boolean isNullOrigin = getCountryFromCity(origin) == null;
+                        boolean isNullDestination = getCountryFromCity(destination) == null;
+
+                        if (!isNullOrigin && !isNullDestination) {
+                            if (!getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination)) && domesticAbroad == 1) {
+                                JOptionPane.showMessageDialog(null, "It's a domestic flight," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else if (getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination)) && domesticAbroad == 2) {
+                                JOptionPane.showMessageDialog(null, "It's an abroad flight," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else {
+
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                        "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                                preparedStatement.setInt(1, idOriginCity1);
+                                preparedStatement.setInt(2, idOriginCity2);
+                                preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                                preparedStatement.setInt(4, startPrice);
+                                preparedStatement.setInt(5, endPrice);
+                                preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
+                                preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                                resultSet = preparedStatement.executeQuery();
+
+                                int counter = 1;
+                                while (resultSet.next()) {
+
+
+                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
+                                            append("time : " + resultSet.getString("time") + "\n").append("origin : " +
+                                                    origin + "\n").
+                                            append("destination : " + destination + "\n").
+                                            append("remaining seats : " + resultSet.getString("seatsRemain") + "\n");
+                                    counter++;
+
+                                }
+
+                                int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                                                " you want to reserve a ticket for it\n0 - Back\n" + allTravels,
+                                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                                if (myTravel > 0) {
+                                    passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
+                                } else if (myTravel == 0) {
+                                    return;
+                                }
+                            }
+
+
+                        } else {
+                            JOptionPane.showMessageDialog(null, "there is no origin or destination such that " +
+                                            "please try again", "ticket reservation",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
+                    }
             }
-
 
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
+
 
     public static String getCountryFromCity(String city) throws SQLException {
         try {
@@ -662,6 +1023,474 @@ public class Human {
         }
         return null;
     }
+
+    public static void searchForTrainOrBus(Human passenger, int trainOrBus) throws SQLException {
+        ArrayList<Integer> pkOfTravels = new ArrayList<>();
+        StringBuilder allTravels = new StringBuilder();
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+            switch (Integer.parseInt(JOptionPane.showInputDialog(null,
+                    "On what basis do you want to filter it? :\n1. origin and destination \n" +
+                            "2. origin and destination and price\n3. origin and destination and date\n" +
+                            "4. origin and destination and price and date\n5. rate according to agency\n6. back"))) {
+                case 1:
+                    String origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    String destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+
+
+                    int idOriginCity1 = 0;
+                    PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, origin);
+                    ResultSet resultSetCity1 = preparedStatement.executeQuery();
+                    if (resultSetCity1.next()) {
+                        idOriginCity1 = resultSetCity1.getInt("id");
+                    }
+                    int idOriginCity2 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, destination);
+                    ResultSet resultSetCity2 = preparedStatement.executeQuery();
+                    if (resultSetCity2.next()) {
+                        idOriginCity2 = resultSetCity2.getInt("id");
+                    }
+
+
+                    ResultSet resultSet = null;
+                    if(trainOrBus == 1){
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                            "and destination = ? and vehicle = ?");
+                    preparedStatement.setInt(1, idOriginCity1);
+                    preparedStatement.setInt(2, idOriginCity2);
+                    preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                    resultSet = preparedStatement.executeQuery();
+                    }
+                    else if(trainOrBus == 2){
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                "and destination = ? and vehicle = ?");
+                        preparedStatement.setInt(1, idOriginCity1);
+                        preparedStatement.setInt(2, idOriginCity2);
+                        preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                        resultSet = preparedStatement.executeQuery();
+                    }
+
+                    if (resultSet.next()) {
+
+                        boolean isNullOrigin = getCountryFromCity(origin) == null;
+                        boolean isNullDestination = getCountryFromCity(destination) == null;
+
+                        if (!isNullOrigin && !isNullDestination) {
+                            if (!getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination))) {
+                                JOptionPane.showMessageDialog(null, "It's a domestic travel," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            }
+                        } else {
+
+                            resultSet = null;
+                            if(trainOrBus == 1){
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                        "and destination = ? and vehicle = ?");
+                                preparedStatement.setInt(1, idOriginCity1);
+                                preparedStatement.setInt(2, idOriginCity2);
+                                preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                                resultSet = preparedStatement.executeQuery();
+                            }
+                            else if(trainOrBus == 2){
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                        "and destination = ? and vehicle = ?");
+                                preparedStatement.setInt(1, idOriginCity1);
+                                preparedStatement.setInt(2, idOriginCity2);
+                                preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                                resultSet = preparedStatement.executeQuery();
+                            }
+
+                            int counter = 1;
+                            while (resultSet.next()) {
+
+
+                                pkOfTravels.add(resultSet.getInt("id"));
+                                allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
+                                        append("time : " + resultSet.getString("time") + "\n").append("origin : " +
+                                                origin + "\n").
+                                        append("destination : " + destination + "\n").
+                                        append("remaining seats : " + resultSet.getString("seatsRemain") + "\n");
+                                counter++;
+
+                            }
+
+                            int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                                            " you want to reserve a ticket for it\n0 - Back\n" + allTravels,
+                                    "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                            if (myTravel > 0) {
+                                passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
+                            } else if (myTravel == 0) {
+                                return;
+                            }
+                        }
+
+                    } else {
+                        JOptionPane.showMessageDialog(null, "there is no origin or destination such that " +
+                                        "please try again", "ticket reservation",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+
+                    break;
+                case 2:
+                    origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    int startPrice = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the price floor"
+                            , JOptionPane.QUESTION_MESSAGE));
+                    int endPrice = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the price ceiling",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+
+
+                    idOriginCity1 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, origin);
+                    resultSetCity1 = preparedStatement.executeQuery();
+                    if (resultSetCity1.next()) {
+                        idOriginCity1 = resultSetCity1.getInt("id");
+                    }
+                    idOriginCity2 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, destination);
+                    resultSetCity2 = preparedStatement.executeQuery();
+                    if (resultSetCity2.next()) {
+                        idOriginCity2 = resultSetCity2.getInt("id");
+                    }
+
+
+                    resultSet = null;
+                    if(trainOrBus == 1){
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                    preparedStatement.setInt(1, idOriginCity1);
+                    preparedStatement.setInt(2, idOriginCity2);
+                    preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                    preparedStatement.setInt(4, startPrice);
+                    preparedStatement.setInt(5, endPrice);
+                    resultSet = preparedStatement.executeQuery();
+                    }
+                    else if (trainOrBus == 2){
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? ");
+                        preparedStatement.setInt(1, idOriginCity1);
+                        preparedStatement.setInt(2, idOriginCity2);
+                        preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                        preparedStatement.setInt(4, startPrice);
+                        preparedStatement.setInt(5, endPrice);
+                        resultSet = preparedStatement.executeQuery();
+                    }
+
+                    if (resultSet.next()) {
+
+                        boolean isNullOrigin = getCountryFromCity(origin) == null;
+                        boolean isNullDestination = getCountryFromCity(destination) == null;
+
+                        if (!isNullOrigin && !isNullDestination) {
+                            if (!getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination))) {
+                                JOptionPane.showMessageDialog(null, "It's a domestic travel," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else {
+
+                                if(trainOrBus == 1){
+                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                                    preparedStatement.setInt(1, idOriginCity1);
+                                    preparedStatement.setInt(2, idOriginCity2);
+                                    preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                                    preparedStatement.setInt(4, startPrice);
+                                    preparedStatement.setInt(5, endPrice);
+                                    resultSet = preparedStatement.executeQuery();
+                                }
+                                else if (trainOrBus == 2){
+                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                                    preparedStatement.setInt(1, idOriginCity1);
+                                    preparedStatement.setInt(2, idOriginCity2);
+                                    preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                                    preparedStatement.setInt(4, startPrice);
+                                    preparedStatement.setInt(5, endPrice);
+                                    resultSet = preparedStatement.executeQuery();
+                                }
+
+                                int counter = 1;
+                                while (resultSet.next()) {
+
+
+                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
+                                            append("time : " + resultSet.getString("time") + "\n").append("origin : " +
+                                                    origin + "\n").
+                                            append("destination : " + destination + "\n").
+                                            append("remaining seats : " + resultSet.getString("seatsRemain") + "\n");
+                                    counter++;
+
+                                }
+
+                                int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                                                " you want to reserve a ticket for it\n0 - Back\n" + allTravels,
+                                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                                if (myTravel > 0) {
+                                    passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
+                                } else if (myTravel == 0) {
+                                    return;
+                                }
+                            }
+
+
+                        } else {
+                            JOptionPane.showMessageDialog(null, "there is no origin or destination such that " +
+                                            "please try again", "ticket reservation",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
+                    }
+                    break;
+                case 3:
+                    origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    LocalDate startDate = LocalDate.parse(JOptionPane.showInputDialog(null, "Please Enter start date",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                    LocalDate endDate = LocalDate.parse(JOptionPane.showInputDialog(null, "Please Enter the end date",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+
+
+                    idOriginCity1 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, origin);
+                    resultSetCity1 = preparedStatement.executeQuery();
+                    if (resultSetCity1.next()) {
+                        idOriginCity1 = resultSetCity1.getInt("id");
+                    }
+                    idOriginCity2 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, destination);
+                    resultSetCity2 = preparedStatement.executeQuery();
+                    if (resultSetCity2.next()) {
+                        idOriginCity2 = resultSetCity2.getInt("id");
+                    }
+
+                    resultSet = null;
+                    if(trainOrBus == 1) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? ");
+                        preparedStatement.setInt(1, idOriginCity1);
+                        preparedStatement.setInt(2, idOriginCity2);
+                        preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                        preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
+                        preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                        resultSet = preparedStatement.executeQuery();
+                    }
+                    else if(trainOrBus == 2) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? ");
+                        preparedStatement.setInt(1, idOriginCity1);
+                        preparedStatement.setInt(2, idOriginCity2);
+                        preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                        preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
+                        preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                        resultSet = preparedStatement.executeQuery();
+                    }
+
+                    if (resultSet.next()) {
+
+                        boolean isNullOrigin = getCountryFromCity(origin) == null;
+                        boolean isNullDestination = getCountryFromCity(destination) == null;
+
+                        if (!isNullOrigin && !isNullDestination) {
+                            if (!getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination))) {
+                                JOptionPane.showMessageDialog(null, "It's a domestic travel," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else {
+
+                                if(trainOrBus == 1) {
+                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                                    preparedStatement.setInt(1, idOriginCity1);
+                                    preparedStatement.setInt(2, idOriginCity2);
+                                    preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                                    preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
+                                    preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                                    resultSet = preparedStatement.executeQuery();
+                                }
+                                else if(trainOrBus == 2) {
+                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                                    preparedStatement.setInt(1, idOriginCity1);
+                                    preparedStatement.setInt(2, idOriginCity2);
+                                    preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                                    preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
+                                    preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                                    resultSet = preparedStatement.executeQuery();
+                                }
+
+                                int counter = 1;
+                                while (resultSet.next()) {
+
+
+                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
+                                            append("time : " + resultSet.getString("time") + "\n").append("origin : " +
+                                                    origin + "\n").
+                                            append("destination : " + destination + "\n").
+                                            append("remaining seats : " + resultSet.getString("seatsRemain") + "\n");
+                                    counter++;
+
+                                }
+
+                                int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                                                " you want to reserve a ticket for it\n0 - Back\n" + allTravels,
+                                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                                if (myTravel > 0) {
+                                    passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
+                                } else if (myTravel == 0) {
+                                    return;
+                                }
+                            }
+
+
+                        }
+
+
+                    }
+                case 4:
+                    origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    startPrice = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the price floor"
+                            , JOptionPane.QUESTION_MESSAGE));
+                    endPrice = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the price ceiling",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                    startDate = LocalDate.parse(JOptionPane.showInputDialog(null, "Please Enter start date",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                    endDate = LocalDate.parse(JOptionPane.showInputDialog(null, "Please Enter the end date",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+
+
+                    idOriginCity1 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, origin);
+                    resultSetCity1 = preparedStatement.executeQuery();
+                    if (resultSetCity1.next()) {
+                        idOriginCity1 = resultSetCity1.getInt("id");
+                    }
+                    idOriginCity2 = 0;
+                    preparedStatement = connection.prepareStatement("SELECT * FROM city where cityName = ?");
+                    preparedStatement.setString(1, destination);
+                    resultSetCity2 = preparedStatement.executeQuery();
+                    if (resultSetCity2.next()) {
+                        idOriginCity2 = resultSetCity2.getInt("id");
+                    }
+
+                    resultSet = null;
+                    if(trainOrBus == 1) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                        preparedStatement.setInt(1, idOriginCity1);
+                        preparedStatement.setInt(2, idOriginCity2);
+                        preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                        preparedStatement.setInt(4, startPrice);
+                        preparedStatement.setInt(5, endPrice);
+                        preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
+                        preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                        resultSet = preparedStatement.executeQuery();
+                    }
+                    else if(trainOrBus == 2) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                        preparedStatement.setInt(1, idOriginCity1);
+                        preparedStatement.setInt(2, idOriginCity2);
+                        preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                        preparedStatement.setInt(4, startPrice);
+                        preparedStatement.setInt(5, endPrice);
+                        preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
+                        preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                        resultSet = preparedStatement.executeQuery();
+                    }
+
+                    if (resultSet.next()) {
+
+                        boolean isNullOrigin = getCountryFromCity(origin) == null;
+                        boolean isNullDestination = getCountryFromCity(destination) == null;
+
+                        if (!isNullOrigin && !isNullDestination) {
+                            if (!getCountryFromCity(origin).
+                                    equals(getCountryFromCity(destination))) {
+                                JOptionPane.showMessageDialog(null, "It's a domestic travel," +
+                                                " please enter another origin and destination", "ticket reservation",
+                                        JOptionPane.INFORMATION_MESSAGE);
+                                return;
+                            } else {
+
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                        "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                                preparedStatement.setInt(1, idOriginCity1);
+                                preparedStatement.setInt(2, idOriginCity2);
+                                preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                                preparedStatement.setInt(4, startPrice);
+                                preparedStatement.setInt(5, endPrice);
+                                preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
+                                preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                                resultSet = preparedStatement.executeQuery();
+
+                                int counter = 1;
+                                while (resultSet.next()) {
+
+
+                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
+                                            append("time : " + resultSet.getString("time") + "\n").append("origin : " +
+                                                    origin + "\n").
+                                            append("destination : " + destination + "\n").
+                                            append("remaining seats : " + resultSet.getString("seatsRemain") + "\n");
+                                    counter++;
+
+                                }
+
+                                int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                                                " you want to reserve a ticket for it\n0 - Back\n" + allTravels,
+                                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                                if (myTravel > 0) {
+                                    passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
+                                } else if (myTravel == 0) {
+                                    return;
+                                }
+                            }
+
+
+                        } else {
+                            JOptionPane.showMessageDialog(null, "there is no origin or destination such that " +
+                                            "please try again", "ticket reservation",
+                                    JOptionPane.INFORMATION_MESSAGE);
+                            return;
+                        }
+                    }
+            }
+        } catch (
+                ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     public void reserveTicket(int idOfTravel) throws SQLException {
         try {
@@ -721,39 +1550,39 @@ public class Human {
                     "aliiiw", "ali123");
 
 
-            PreparedStatement preparedStatement = connection.prepareStatement("SELECT idTicket from passenger_ticket" +
-                    " where idPassenger = ?");
-            preparedStatement.setInt(1, getPrimaryKey());
-            ResultSet resultSet = preparedStatement.executeQuery();
-
+//            PreparedStatement preparedStatement = connection.prepareStatement("SELECT idTicket from passenger_ticket" +
+//                    " where idPassenger = ?");
+//            preparedStatement.setInt(1, getPrimaryKey());
+//            ResultSet resultSet = preparedStatement.executeQuery();
+//
             int idTicket;
 
             int counter = 1;
-            while (resultSet.next()) {
-                idTicket = resultSet.getInt("idTicket");
+//            while (resultSet.next()) {
+
+
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM travel join ticket on ticket.travelId = " +
+                    "travel.id join passenger_ticket on passenger_ticket.idTicket = ticket.id where idPassenger = ? and ticketStatus = ? ");
+            preparedStatement.setInt(1, getPrimaryKey());
+            preparedStatement.setObject(2, TicketStatus.Reserve, Types.OTHER);
+            ResultSet travelOfTicket = preparedStatement.executeQuery();
+
+
+            if (travelOfTicket.next()) {
+
+                idTicket = travelOfTicket.getInt("idTicket");
                 pkOfTickets.add(idTicket);
 
-                //System.out.println("to" + pkOfTickets.get(counter - 1));
 
-
-                preparedStatement = connection.prepareStatement("SELECT * FROM travel join ticket on ticket.travelId = " +
-                        "travel.id where ticket.id = ? ");
-                preparedStatement.setInt(1, idTicket);
-                ResultSet travelOfTicket = preparedStatement.executeQuery();
-
-
-                if (travelOfTicket.next()) {
-
-
-                    allTravels = allTravels.append(counter + " - " + "Date :" + travelOfTicket.getString("date") + "\n").
-                            append("time :" + travelOfTicket.getString("time") + "\n").append("origin :" +
-                                    getCityByItsPrimaryKey(travelOfTicket.getInt("origin")) + "\n").
-                            append("destination :" + getCityByItsPrimaryKey(travelOfTicket.getInt("destination")) + "\n").
-                            append("remaining seats :" + travelOfTicket.getString("seatsRemain") + "\n");
-                    counter++;
-                }
-
+                allTravels = allTravels.append(counter + " - " + "Date :" + travelOfTicket.getString("date") + "\n").
+                        append("time :" + travelOfTicket.getString("time") + "\n").append("origin :" +
+                                getCityByItsPrimaryKey(travelOfTicket.getInt("origin")) + "\n").
+                        append("destination :" + getCityByItsPrimaryKey(travelOfTicket.getInt("destination")) + "\n").
+                        append("remaining seats :" + travelOfTicket.getString("seatsRemain") + "\n");
+                counter++;
             }
+
+
             int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
                             "you want to buy a ticket for it\n0 - Back\n" + allTravels,
                     "buy ticket", JOptionPane.QUESTION_MESSAGE));
@@ -768,6 +1597,7 @@ public class Human {
             e.printStackTrace();
         }
     }
+
 
     public String getCityByItsPrimaryKey(int primaryKey) throws SQLException {
         try {
@@ -811,17 +1641,19 @@ public class Human {
                 preparedStatement.executeUpdate();
             }
 
-            preparedStatement = connection.prepareStatement("SELECT seatsRemain, price from travel join ticket on travel.id = " +
+            preparedStatement = connection.prepareStatement("SELECT seatsRemain, price, travelId from travel join ticket on travel.id = " +
                     "ticket.travelId where ticket.id = ?");
             preparedStatement.setInt(1, idOfTicket);
             ResultSet resultSet1 = preparedStatement.executeQuery();
 
             float price = 0;
             int seatsRemain = 0;
+            int travelId = 0;
 
             while (resultSet1.next()) {
                 seatsRemain = resultSet1.getInt("seatsRemain");
                 price = resultSet1.getFloat("price");
+                travelId = resultSet1.getInt("travelId");
             }
             System.out.println(seatsRemain);
             System.out.println(price);
@@ -895,6 +1727,13 @@ public class Human {
                         preparedStatement.setInt(2, idOfTicket);
                         preparedStatement.executeQuery();
 
+                        preparedStatement = connection.prepareStatement("UPDATE travel SET seatsRemain = ? " +
+                                " where id = ?");
+                        preparedStatement.setInt(1, seatsRemain - 1);
+                        preparedStatement.setInt(2, travelId);
+                        preparedStatement.executeQuery();
+
+
                         JOptionPane.showMessageDialog(null, "your purchase has been done successfully"
                                 , "buy ticket", JOptionPane.INFORMATION_MESSAGE);
                         break;
@@ -918,7 +1757,182 @@ public class Human {
 
 
     }
+
+    public StringBuilder allMyPurchasedTickets() throws SQLException {
+        StringBuilder allTravels = new StringBuilder();
+        ArrayList<Integer> pkOfTickets = new ArrayList<>();
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+
+            int counter = 1;
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM travel join ticket on ticket.travelId = " +
+                    "travel.id join passenger_ticket on passenger_ticket.idTicket = ticket.id where idPassenger = ? and ticketStatus = ? ");
+            preparedStatement.setInt(1, getPrimaryKey());
+            preparedStatement.setObject(2, TicketStatus.Paid, Types.OTHER);
+            ResultSet travelOfTicket = preparedStatement.executeQuery();
+
+
+            if (travelOfTicket.next()) {
+
+                allTravels = allTravels.append(counter + " - " + "Date :" + travelOfTicket.getString("date") + "\n").
+                        append("time :" + travelOfTicket.getString("time") + "\n").append("origin :" +
+                                getCityByItsPrimaryKey(travelOfTicket.getInt("origin")) + "\n").
+                        append("destination :" + getCityByItsPrimaryKey(travelOfTicket.getInt("destination")) + "\n").
+                        append("remaining seats :" + travelOfTicket.getString("seatsRemain") + "\n");
+                counter++;
+            }
+
+
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return allTravels;
+    }
+
+    public void showAllMyPurchasedTickets() throws SQLException {
+        StringBuilder allTravels = allMyPurchasedTickets();
+        JOptionPane.showInputDialog(null, allTravels,
+                "All My Purchased Tickets", JOptionPane.INFORMATION_MESSAGE);
+    }
+
+    public void cancelTheTravel() throws SQLException {
+
+        StringBuilder allTravels = new StringBuilder();
+        ArrayList<Integer> pkOfTickets = new ArrayList<>();
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+
+            int counter = 1;
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM travel join ticket on ticket.travelId = " +
+                    "travel.id join passenger_ticket on passenger_ticket.idTicket = ticket.id where idPassenger = ? and ticketStatus = ? ");
+            preparedStatement.setInt(1, getPrimaryKey());
+            preparedStatement.setObject(2, TicketStatus.Paid, Types.OTHER);
+            ResultSet travelOfTicket = preparedStatement.executeQuery();
+
+            int idTicket;
+            if (travelOfTicket.next()) {
+                idTicket = travelOfTicket.getInt("idTicket");
+                pkOfTickets.add(idTicket);
+
+                allTravels = allTravels.append(counter + " - " + "Date :" + travelOfTicket.getString("date") + "\n").
+                        append("time :" + travelOfTicket.getString("time") + "\n").append("origin :" +
+                                getCityByItsPrimaryKey(travelOfTicket.getInt("origin")) + "\n").
+                        append("destination :" + getCityByItsPrimaryKey(travelOfTicket.getInt("destination")) + "\n").
+                        append("remaining seats :" + travelOfTicket.getString("seatsRemain") + "\n");
+                counter++;
+            }
+
+
+            int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                            "you want to cancel the ticket of it\n0 - Back\n" + allTravels,
+                    "cancel ticket", JOptionPane.QUESTION_MESSAGE));
+
+            if (myTravel > 0) {
+                idTicket = pkOfTickets.get(myTravel - 1);
+
+                preparedStatement = connection.prepareStatement("SELECT seatsRemain, travelId FROM travel join ticket on ticket.travelId = " +
+                        "travel.id where ticket.id = ?");
+                preparedStatement.setInt(1, idTicket);
+                ResultSet travelDetailsResultSet = preparedStatement.executeQuery();
+
+                int seatsRemain = 0;
+                int travelId = 0;
+                if (travelDetailsResultSet.next()) {
+                    seatsRemain = travelDetailsResultSet.getInt(1);
+                    travelId = travelDetailsResultSet.getInt(2);
+                }
+
+
+                preparedStatement = connection.prepareStatement("UPDATE ticket SET ticketStatus = ?" +
+                        " WHERE id = ?");
+                preparedStatement.setObject(1, TicketStatus.Canceled, Types.OTHER);
+                preparedStatement.setInt(2, idTicket);
+                preparedStatement.executeQuery();
+
+                preparedStatement = connection.prepareStatement("UPDATE travel SET seatsRemain = ?" +
+                        " WHERE id = ?");
+                preparedStatement.setInt(1, seatsRemain + 1);
+                preparedStatement.setInt(2, travelId);
+                preparedStatement.executeQuery();
+
+                JOptionPane.showInputDialog(null, "travel wes canceled successfully",
+                        "cancel ticket", JOptionPane.INFORMATION_MESSAGE);
+
+            } else if (myTravel == 0) {
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void rateToTravel() throws SQLException {
+        StringBuilder allTravels = new StringBuilder();
+        ArrayList<Integer> pkOfTickets = new ArrayList<>();
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+
+
+            int counter = 1;
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT * FROM travel join ticket on ticket.travelId = " +
+                    "travel.id join passenger_ticket on passenger_ticket.idTicket = ticket.id where idPassenger = ? and ticketStatus = ? ");
+            preparedStatement.setInt(1, getPrimaryKey());
+            preparedStatement.setObject(2, TicketStatus.Done, Types.OTHER);
+            ResultSet travelOfTicket = preparedStatement.executeQuery();
+
+            int idTicket;
+            if (travelOfTicket.next()) {
+                idTicket = travelOfTicket.getInt("idTicket");
+                pkOfTickets.add(idTicket);
+
+                allTravels = allTravels.append(counter + " - " + "Date :" + travelOfTicket.getString("date") + "\n").
+                        append("time :" + travelOfTicket.getString("time") + "\n").append("origin :" +
+                                getCityByItsPrimaryKey(travelOfTicket.getInt("origin")) + "\n").
+                        append("destination :" + getCityByItsPrimaryKey(travelOfTicket.getInt("destination")) + "\n").
+                        append("remaining seats :" + travelOfTicket.getString("seatsRemain") + "\n");
+                counter++;
+            }
+
+
+            int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
+                            "you want to rate it\n0 - Back\n" + allTravels,
+                    "rate travel", JOptionPane.QUESTION_MESSAGE));
+
+            if (myTravel > 0) {
+                idTicket = pkOfTickets.get(myTravel - 1);
+
+                int rate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please rate this trip\n" +
+                                "enter a number between 1 to 5",
+                        "rate travel", JOptionPane.QUESTION_MESSAGE));
+
+                preparedStatement = connection.prepareStatement("UPDATE ticket SET rate = ?" +
+                        " WHERE id = ?");
+                preparedStatement.setInt(1, rate);
+                preparedStatement.setInt(2, idTicket);
+                preparedStatement.executeQuery();
+
+                JOptionPane.showInputDialog(null, "you rate has submitted successfully",
+                        "rate travel", JOptionPane.INFORMATION_MESSAGE);
+
+
+            } else if (myTravel == 0) {
+            }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+
 }
+
 
 
 
