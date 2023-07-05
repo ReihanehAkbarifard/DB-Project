@@ -131,12 +131,6 @@ public class Human {
             email = JOptionPane.showInputDialog(null, "Please enter your Email Address:",
                     "Sign-Up page", JOptionPane.QUESTION_MESSAGE);
 
-//            boolean isValidMail = false;
-//            if ((email.matches("^[a-zA-Z0-9]+[@]{1}+[a-zA-Z0-9]+[.]{1}+[a-zA-Z0-9]+$"))) {
-//                isValidMail = true;
-//            } else {
-//                JOptionPane.showMessageDialog(null, "Please enter valid Email!");
-//            }
 
             if (email.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(null, "Please fill out all parts!");
@@ -145,12 +139,6 @@ public class Human {
             phoneNumber = JOptionPane.showInputDialog(null, "Please enter your phoneNumber:",
                     "Sign-Up page", JOptionPane.QUESTION_MESSAGE);
 
-//            boolean isValidPhoneNumber = false;
-//            if ((phoneNumber.matches("^\\\\d{11}$"))) {
-//                isValidPhoneNumber = true;
-//            } else {
-//                JOptionPane.showMessageDialog(null, "Please enter valid phoneNumber!");
-//            }
 
             if (phoneNumber.trim().isEmpty()) {
                 JOptionPane.showMessageDialog(null, "Please fill out all parts!");
@@ -451,10 +439,10 @@ public class Human {
                                 passenger.showAllMyReservedTickets(passenger);
                             }
                     }
-//
+
                 case 2:
                     switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
-                            "an option :\n1. Show all my detail\n2. Edit Profile\n3. Delete Profile\n4. back"))) {
+                            "an option :\n1. Show all my detail\n2. Edit Profile\n3. back"))) {
                         case 1:
                             passenger.seeProfile();
                             break;
@@ -462,20 +450,10 @@ public class Human {
                             passenger.editProfile();
                             break;
                         case 3:
-                            //passenger.deleteProfile();
-                            isInHomePage = false;
-                            break;
-                        case 4:
                             break;
                     }
                     break;
-//                                case 3:
-//                                    JOptionPane.showMessageDialog(null, "Logged Out successfully",
-//                                            "Logout Page", JOptionPane.INFORMATION_MESSAGE);
-//                                    isInHomePage = false;
-//                                    break;
-//
-//
+
 
 
             }
@@ -714,7 +692,6 @@ public class Human {
 
             int ticketId = 0;
             if (primaryKey.next()) {
-                System.out.println("inja");
                 ticketId = primaryKey.getInt(1);
             }
 
@@ -737,7 +714,7 @@ public class Human {
 
     public void showAllMyReservedTickets(Human passenger) throws SQLException {
         StringBuilder allTravels = new StringBuilder();
-        ArrayList<Integer> pkOfTravels = new ArrayList<>();
+        ArrayList<Integer> pkOfTickets = new ArrayList<>();
         try {
             Class.forName("org.postgresql.Driver");
             Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
@@ -749,36 +726,30 @@ public class Human {
             preparedStatement.setInt(1, getPrimaryKey());
             ResultSet resultSet = preparedStatement.executeQuery();
 
-            int idTicket = 0;
+            int idTicket;
 
             int counter = 1;
             while (resultSet.next()) {
                 idTicket = resultSet.getInt("idTicket");
+                pkOfTickets.add(idTicket);
 
-                preparedStatement = connection.prepareStatement("SELECT travelId from ticket" +
-                        " where id = ?");
+                //System.out.println("to" + pkOfTickets.get(counter - 1));
+
+
+                preparedStatement = connection.prepareStatement("SELECT * FROM travel join ticket on ticket.travelId = " +
+                        "travel.id where ticket.id = ? ");
                 preparedStatement.setInt(1, idTicket);
-                ResultSet idOfTravel = preparedStatement.executeQuery();
-
-                int travelId = 0;
-                if (idOfTravel.next()) {
-                    travelId = idOfTravel.getInt("travelId");
-                }
-
-                preparedStatement = connection.prepareStatement("SELECT * from travel" +
-                        " where id = ?");
-                preparedStatement.setInt(1, travelId);
                 ResultSet travelOfTicket = preparedStatement.executeQuery();
 
 
                 if (travelOfTicket.next()) {
-                    System.out.println("hasimmm");
-                    pkOfTravels.add(travelOfTicket.getInt("id"));
+
+
                     allTravels = allTravels.append(counter + " - " + "Date :" + travelOfTicket.getString("date") + "\n").
                             append("time :" + travelOfTicket.getString("time") + "\n").append("origin :" +
                                     getCityByItsPrimaryKey(travelOfTicket.getInt("origin")) + "\n").
                             append("destination :" + getCityByItsPrimaryKey(travelOfTicket.getInt("destination")) + "\n").
-                            append("remaining seats :" + travelOfTicket.getString("seatsRemain"));
+                            append("remaining seats :" + travelOfTicket.getString("seatsRemain") + "\n");
                     counter++;
                 }
 
@@ -786,8 +757,9 @@ public class Human {
             int myTravel = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the travel" +
                             "you want to buy a ticket for it\n0 - Back\n" + allTravels,
                     "buy ticket", JOptionPane.QUESTION_MESSAGE));
+
             if (myTravel > 0) {
-                passenger.buyTicket(idTicket);
+                passenger.buyTicket(pkOfTickets.get(myTravel - 1));
             } else if (myTravel == 0) {
             }
 
@@ -833,30 +805,32 @@ public class Human {
             if (resultSet.next()) {
                 offerPassengerId = resultSet.getInt("id");
                 offerId = resultSet.getInt("offerId");
+                preparedStatement = connection.prepareStatement("UPDATE ticket SET offerId = ? where id = ?");
+                preparedStatement.setInt(1, offerPassengerId);
+                preparedStatement.setInt(2, idOfTicket);
+                preparedStatement.executeUpdate();
             }
-            preparedStatement = connection.prepareStatement("INSERT INTO ticket" +
-                    "(offerId) VALUES (?)");
-            preparedStatement.setInt(1, offerPassengerId);
-            preparedStatement.executeUpdate();
 
-
-            preparedStatement = connection.prepareStatement("SELECT offerId from ticket" +
-                    " where id = ?");
+            preparedStatement = connection.prepareStatement("SELECT seatsRemain, price from travel join ticket on travel.id = " +
+                    "ticket.travelId where ticket.id = ?");
             preparedStatement.setInt(1, idOfTicket);
-            resultSet = preparedStatement.executeQuery();
+            ResultSet resultSet1 = preparedStatement.executeQuery();
 
+            float price = 0;
             int seatsRemain = 0;
-            if (resultSet.next()) {
-                seatsRemain = resultSet.getInt("seatsRemain");
+
+            while (resultSet1.next()) {
+                seatsRemain = resultSet1.getInt("seatsRemain");
+                price = resultSet1.getFloat("price");
             }
+            System.out.println(seatsRemain);
+            System.out.println(price);
 
             if (seatsRemain > 0) {
 
                 ArrayList<String> options = new ArrayList<>();
                 options.add("Yes");
                 options.add("No");
-
-                int price = resultSet.getInt("price");
 
                 int chosen = JOptionPane.showOptionDialog(null, "the price of this travel is: " +
                                 price + "\ndo you have any discount code?"
@@ -868,12 +842,18 @@ public class Human {
                                         "discount code",
                                 "buy ticket", JOptionPane.QUESTION_MESSAGE);
                         preparedStatement = connection.prepareStatement("SELECT * from offer" +
-                                " where offerId = ?");
+                                " where id = ?");
                         preparedStatement.setInt(1, offerId);
                         ResultSet offer = preparedStatement.executeQuery();
 
-                        int finalPrice;
+
+                        float finalPrice;
                         if (offer.next()) {
+
+                            if (!offer.getString("code").equals(discountCode)) {
+                                return;
+                            }
+
                             int limitation = offer.getInt("limitation");
                             int discountAmount = offer.getInt("discountAmount");
                             if (offer.getInt("limitation") < price) {
@@ -884,9 +864,10 @@ public class Human {
 
 
                             }
+
                             preparedStatement = connection.prepareStatement("UPDATE ticket SET finalPrice = ? " +
                                     " where offerId = ?");
-                            preparedStatement.setInt(1, finalPrice);
+                            preparedStatement.setFloat(1, finalPrice);
                             preparedStatement.setInt(2, idOfTicket);
                             preparedStatement.executeQuery();
                             JOptionPane.showMessageDialog(null, "your discount has " +
@@ -897,31 +878,29 @@ public class Human {
                             JOptionPane.showMessageDialog(null, "there is no discount code such that"
                                     , "buy ticket", JOptionPane.INFORMATION_MESSAGE);
                         }
-                        ArrayList<String> options1 = new ArrayList<>();
-                        options.add("Yes");
-                        options.add("No");
 
-                        int chosen1 = JOptionPane.showOptionDialog(null, "do you want to buy it?"
-                                , "buy ticket",
-                                JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
-                        switch (chosen1){
-                            case 0:
-                                preparedStatement = connection.prepareStatement("UPDATE ticket SET ticketStatus = ? " +
-                                        " where offerId = ?");
-                                preparedStatement.setObject(1, TicketStatus.Paid, Types.OTHER);
-                                preparedStatement.setInt(2, idOfTicket);
-                                preparedStatement.executeQuery();
+                    case 1:
+                        return;
 
-                                JOptionPane.showMessageDialog(null, "your purchase has been done successfully"
-                                        , "buy ticket", JOptionPane.INFORMATION_MESSAGE);
-                            case 1:
-                                return;
+                }
 
-                        }
+                int chosen1 = JOptionPane.showOptionDialog(null, "do you want to buy it?"
+                        , "buy ticket",
+                        JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
+                switch (chosen1) {
+                    case 0:
+                        preparedStatement = connection.prepareStatement("UPDATE ticket SET ticketStatus = ? " +
+                                " where offerId = ?");
+                        preparedStatement.setObject(1, TicketStatus.Paid, Types.OTHER);
+                        preparedStatement.setInt(2, idOfTicket);
+                        preparedStatement.executeQuery();
+
+                        JOptionPane.showMessageDialog(null, "your purchase has been done successfully"
+                                , "buy ticket", JOptionPane.INFORMATION_MESSAGE);
                         break;
 
 
-                    case 2:
+                    case 1:
                         break;
                 }
 
@@ -942,17 +921,4 @@ public class Human {
 }
 
 
-//    public void deleteProfile() throws SQLException {
-//        Connection connection = DriverManager.getConnection("jdbc:mysql://localhost:3306/trello?" +
-//                "autoReconnect=true&useSSL=false", "root", "");
-//        PreparedStatement preparedStatement = connection.prepareStatement("DELETE FROM users WHERE username = ? ");
-//        preparedStatement.setString(1, this.userID);
-//        preparedStatement.executeUpdate();
-//        JOptionPane.showMessageDialog(null, "Your account was deleted " +
-//                        "successfully", "delete account",
-//                JOptionPane.INFORMATION_MESSAGE);
-//
-//
-//    }
-//
 
