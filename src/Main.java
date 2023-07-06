@@ -26,8 +26,10 @@ public class Main {
                             Human.passengerPanel(currentHuman);
                             break;
                         case AGENT:
+                            Human.agentPanel(currentHuman);
                             break;
                         case SUPERADMIN:
+                            Human.superAdminPanel(currentHuman);
                             break;
                     }
                     break;
