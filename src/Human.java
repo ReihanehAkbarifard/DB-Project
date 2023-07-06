@@ -35,8 +35,6 @@ public class Human {
     }
 
 
-
-
     public String getEmail() {
         return email;
     }
@@ -168,11 +166,10 @@ public class Human {
                         JOptionPane.showMessageDialog(null, "This email or phone number " +
                                         "have been chosen before. try another one!!!",
                                 "Alert", JOptionPane.INFORMATION_MESSAGE);
-                    }
-                    else {
+                    } else {
                         isNotEmailPhoneTrue = false;
                     }
-                    
+
 
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
@@ -205,7 +202,7 @@ public class Human {
                 String kPassword = "passWord";
                 StandardPBEStringEncryptor encryptor = new StandardPBEStringEncryptor();
                 encryptor.setPassword(kPassword);
-                String encrypted= encryptor.encrypt(passWord);
+                String encrypted = encryptor.encrypt(passWord);
 
                 String sqlQuery = "INSERT INTO human (email, phoneNumber, password, verifyStatus, userRole," +
                         " firstName, lastName) VALUES (?, ?, ?, ?, ?, ?, ?)";
@@ -649,15 +646,14 @@ public class Human {
                             "agency?" + "\n", "ticket reservation",
                     JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
 
-            if(chosen == 0){
+            if (chosen == 0) {
                 startRate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the start of rate range",
                         "ticket reservation", JOptionPane.QUESTION_MESSAGE));
                 endRate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the end of rate range",
                         "ticket reservation", JOptionPane.QUESTION_MESSAGE));
 
 
-            }
-            else if (chosen == 1){
+            } else if (chosen == 1) {
                 startRate = 1;
                 endRate = 5;
 
@@ -670,8 +666,9 @@ public class Human {
                 case 1:
                     String origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
                             "ticket reservation", JOptionPane.QUESTION_MESSAGE);
-                    ;String destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
-                        "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    ;
+                    String destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
 
 
                     int idOriginCity1 = 0;
@@ -1126,15 +1123,14 @@ public class Human {
                             "agency?" + "\n", "ticket reservation",
                     JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
 
-            if(chosen == 0){
+            if (chosen == 0) {
                 startRate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the start of rate range",
                         "ticket reservation", JOptionPane.QUESTION_MESSAGE));
                 endRate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the end of rate range",
                         "ticket reservation", JOptionPane.QUESTION_MESSAGE));
 
 
-            }
-            else if (chosen == 1){
+            } else if (chosen == 1) {
                 startRate = 1;
                 endRate = 5;
 
@@ -2171,7 +2167,7 @@ public class Human {
 
     //agent///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-    public static void agentPanel(Human agent) throws SQLException{
+    public static void agentPanel(Human agent) throws SQLException {
         int agentWhatToDo = Integer.parseInt(JOptionPane.showInputDialog(null, "What do you want to Do?\n1. Create new Travel\n" +
                         "2. Filter \n3. Stats\n4. Tops\n5. Exit",
                 "Sign-Up page", JOptionPane.QUESTION_MESSAGE));
@@ -2345,7 +2341,7 @@ public class Human {
                     stringBuilder = seeTheTop5Passenger(agent.getPrimaryKey());
                     int seeCity = Integer.parseInt(JOptionPane.showInputDialog(null, "These are Top 5 passenger in payment\n Enter 1 to see the name of the cities \n \n" + stringBuilder, "Agence Stats", JOptionPane.INFORMATION_MESSAGE));
 
-                    if (seeCity == 1){
+                    if (seeCity == 1) {
                         stringBuilder = seeTheTop5PassengerWithCityName(agent.getPrimaryKey());
                         JOptionPane.showInputDialog(null, "These are Top  passenger Destination Name\n " + stringBuilder, "Agence Stats", JOptionPane.INFORMATION_MESSAGE);
                     }
@@ -2630,7 +2626,7 @@ public class Human {
             Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
                     "aliiiw", "ali123");
 
-            String sqlQuery = "select avg(Ticket.rate) average_rate, Travel.name from Ticket join Travel on Travel.id = Ticket.travelId join Agency_Travel on Travel.id = Agency_Travel.idTravel join agency on agency.id = Agency_Travel.idAgency join agency_admin on Agency_Travel.idAgency = agency_admin.idAgency where idAdmin = ? group by Travel.name";
+            String sqlQuery = "select avg(Travel.rate) average_rate, Travel.name from travel join Agency_Travel on Travel.id = Agency_Travel.idTravel join agency on agency.id = Agency_Travel.idAgency join agency_admin on Agency_Travel.idAgency = agency_admin.idAgency where idAdmin = ? group by Travel.name";
 
             PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
             preparedStatement.setInt(1, agentId);
@@ -2655,7 +2651,7 @@ public class Human {
             Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
                     "aliiiw", "ali123");
 
-            String sqlQuery = "select avg(Ticket.rate) average_rate, Travel.name from Ticket join Travel on Travel.id = Ticket.travelId join Agency_Travel on Travel.id = Agency_Travel.idTravel join agency on agency.id = Agency_Travel.idAgency join agency_admin on Agency_Travel.idAgency = agency_admin.idAgency where idAdmin = ? group by Travel.name order by average_rate asc";
+            String sqlQuery = "select avg(Travel.rate) average_rate, Travel.name from travel join Agency_Travel on Travel.id = Agency_Travel.idTravel join agency on agency.id = Agency_Travel.idAgency join agency_admin on Agency_Travel.idAgency = agency_admin.idAgency where idAdmin = ? group by Travel.name order by average_rate asc";
 
             PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
             preparedStatement.setInt(1, agentId);
@@ -2680,7 +2676,7 @@ public class Human {
             Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
                     "aliiiw", "ali123");
 
-            String sqlQuery = "select avg(Ticket.rate) average_rate, Travel.name from Ticket join Travel on Travel.id = Ticket.travelId join Agency_Travel on Travel.id = Agency_Travel.idTravel join agency on agency.id = Agency_Travel.idAgency join agency_admin on Agency_Travel.idAgency = agency_admin.idAgency where idAdmin = ? group by Travel.name order by average_rate desc";
+            String sqlQuery = "select avg(Travel.rate) average_rate, Travel.name from travel join Agency_Travel on Travel.id = Agency_Travel.idTravel join agency on agency.id = Agency_Travel.idAgency join agency_admin on Agency_Travel.idAgency = agency_admin.idAgency where idAdmin = ? group by Travel.name order by average_rate desc ";
 
             PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
             preparedStatement.setInt(1, agentId);
@@ -2846,7 +2842,7 @@ public class Human {
     }
 
     //Tested
-    private static StringBuilder seeTheTop5PassengerInSpecificMonth(int agentId, LocalDate startDate , LocalDate endDate) {
+    private static StringBuilder seeTheTop5PassengerInSpecificMonth(int agentId, LocalDate startDate, LocalDate endDate) {
         StringBuilder stringBuilder = new StringBuilder();
         try {
             Class.forName("org.postgresql.Driver");
@@ -2965,7 +2961,7 @@ public class Human {
 
             PreparedStatement preparedStatement = connection.prepareStatement(sqlQuery);
             preparedStatement.setInt(1, whoToSeeChatWith);
-            preparedStatement.setInt(2, superAdminId );
+            preparedStatement.setInt(2, superAdminId);
             preparedStatement.setInt(3, whoToSeeChatWith);
             preparedStatement.setInt(4, superAdminId);
             ResultSet resultSet = preparedStatement.executeQuery();
