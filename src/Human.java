@@ -105,16 +105,16 @@ public class Human {
     }
 
     public static void signUp() throws SQLException {
-        String email;
+        String email = null;
         String passWord;
-        String phoneNumber;
+        String phoneNumber = null;
         boolean verifyStatus = false;
         Role role = Role.PASSENGER;
         String firstName;
         String lastName;
 
-
-        while (true) {
+        boolean inSignedUp = true;
+        while (inSignedUp) {
 
             switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
                     "your role :\n1. Passenger\n2. Super Admin \n3. Agent"))) {
@@ -128,22 +128,25 @@ public class Human {
                     role = Role.AGENT;
             }
 
-
-            email = JOptionPane.showInputDialog(null, "Please enter your Email Address:",
-                    "Sign-Up page", JOptionPane.QUESTION_MESSAGE);
-
-
-            if (email.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Please fill out all parts!");
-            }
-
-            phoneNumber = JOptionPane.showInputDialog(null, "Please enter your phoneNumber:",
-                    "Sign-Up page", JOptionPane.QUESTION_MESSAGE);
+            boolean isNotEmailPhoneTrue = true;
+            while (isNotEmailPhoneTrue) {
+                email = JOptionPane.showInputDialog(null, "Please enter your Email Address:",
+                        "Sign-Up page", JOptionPane.QUESTION_MESSAGE);
 
 
-            if (phoneNumber.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Please fill out all parts!");
-            } else if (true) {
+                if (email.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Please fill out all parts!");
+                    continue;
+                }
+
+                phoneNumber = JOptionPane.showInputDialog(null, "Please enter your phoneNumber:",
+                        "Sign-Up page", JOptionPane.QUESTION_MESSAGE);
+
+                if (phoneNumber.trim().isEmpty()) {
+                    JOptionPane.showMessageDialog(null, "Please fill out all parts!");
+                    continue;
+                }
+
                 try {
                     Class.forName("org.postgresql.Driver");
                     Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
@@ -156,17 +159,22 @@ public class Human {
                     preparedStatement.setString(2, phoneNumber);
                     ResultSet resultSet = preparedStatement.executeQuery();
 
-                    while (resultSet.next()) {
+                    if (resultSet.next()) {
                         JOptionPane.showMessageDialog(null, "This email or phone number " +
                                         "have been chosen before. try another one!!!",
                                 "Alert", JOptionPane.INFORMATION_MESSAGE);
                     }
+                    else {
+                        isNotEmailPhoneTrue = false;
+                    }
+                    
 
                 } catch (ClassNotFoundException e) {
                     throw new RuntimeException(e);
                 }
 
             }
+
 
             while (true) {
                 firstName = JOptionPane.showInputDialog(null, "Please Enter your firstName :",
@@ -203,26 +211,30 @@ public class Human {
 
                 int rows = preparedStatement.executeUpdate();
 
+                boolean isNotDone = true;
+                while (isNotDone) {
+                    if (rows > 0) {
+                        JOptionPane.showMessageDialog(null, "Your account has been created ,but it " +
+                                        "has not still verified. please verify it.",
+                                "Alert", JOptionPane.INFORMATION_MESSAGE);
+                    }
 
-                if (rows > 0) {
-                    JOptionPane.showMessageDialog(null, "Your account has been created ,but it " +
-                                    "has not still verified. please verify it.",
-                            "Alert", JOptionPane.INFORMATION_MESSAGE);
-                }
+
+                    String OTPCode = Main.generateOTPCode();
+                    sqlQuery = "INSERT INTO human_otp (email, otp) " +
+                            "VALUES (?, ?)";
+                    preparedStatement = connection.prepareStatement(sqlQuery);
+                    preparedStatement.setString(1, email);
+                    preparedStatement.setString(2, OTPCode);
+
+                    preparedStatement.executeUpdate();
+
+                    SendEmail.SendEmailToUser(email, OTPCode);
 
 
-                String OTPCode = Main.generateOTPCode();
-                sqlQuery = "INSERT INTO human_otp (email, otp) " +
-                        "VALUES (?, ?)";
-                preparedStatement = connection.prepareStatement(sqlQuery);
-                preparedStatement.setString(1, email);
-                preparedStatement.setString(2, OTPCode);
+                    String otpByHuman = JOptionPane.showInputDialog(null, "Please Enter the OTP Code :",
+                            "Sign-Up Page", JOptionPane.QUESTION_MESSAGE);
 
-                preparedStatement.executeUpdate();
-
-                SendEmail.SendEmailToUser(email, OTPCode);
-
-                while (true) {
                     if (LocalDateTime.now().getMinute() - Main.timeTrack.getMinute() < 2) {
 
                         sqlQuery = "SELECT otp FROM human_otp WHERE email = ?";
@@ -231,8 +243,6 @@ public class Human {
                         ResultSet resultSet = preparedStatement.executeQuery();
 
                         while (resultSet.next()) {
-                            String otpByHuman = JOptionPane.showInputDialog(null, "Please Enter the OTP Code :",
-                                    "Sign-Up Page", JOptionPane.QUESTION_MESSAGE);
                             if (resultSet.getString(1).equals(otpByHuman)) {
                                 JOptionPane.showMessageDialog(null, "You have signed in successfully",
                                         "verification", JOptionPane.INFORMATION_MESSAGE);
@@ -243,28 +253,35 @@ public class Human {
                                 preparedStatement.executeUpdate();
 
                                 break;
+                            } else {
+                                JOptionPane.showMessageDialog(null, "You entered wrong verification code",
+                                        "verification", JOptionPane.INFORMATION_MESSAGE);
                             }
 
                         }
+                        isNotDone = false;
 
                     } else {
                         JOptionPane.showMessageDialog(null, "verification time is over",
                                 "verification", JOptionPane.INFORMATION_MESSAGE);
                     }
+                    System.out.println(LocalDateTime.now().getMinute() - Main.timeTrack.getMinute());
                     sqlQuery = "DELETE FROM human_otp WHERE email = ? ";
                     preparedStatement = connection.prepareStatement(sqlQuery);
                     preparedStatement.setString(1, email);
 
                     preparedStatement.executeUpdate();
+
                 }
 
 
             } catch (ClassNotFoundException e) {
                 throw new RuntimeException(e);
             }
+            inSignedUp = false;
         }
-
     }
+
 
     public static Human logIn() throws SQLException {
         String email = null;
@@ -605,15 +622,41 @@ public class Human {
             Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
                     "aliiiw", "ali123");
 
+            int startRate = 0;
+            int endRate = 0;
+
+            ArrayList<String> options = new ArrayList<>();
+
+            options.add("yes");
+            options.add("no");
+
+            int chosen = JOptionPane.showOptionDialog(null, "do you want to determine the rate of " +
+                            "agency?" + "\n", "ticket reservation",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
+
+            if(chosen == 0){
+                startRate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the start of rate range",
+                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                endRate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the end of rate range",
+                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+
+
+            }
+            else if (chosen == 1){
+                startRate = 1;
+                endRate = 5;
+
+            }
+
             switch (Integer.parseInt(JOptionPane.showInputDialog(null,
-                    "On what basis do you want to filter it? :\n1. origin and destination \n" +
+                    "On what basis you want to filter it? :\n1. origin and destination \n" +
                             "2. origin and destination and price\n3. origin and destination and date\n" +
-                            "4. origin and destination and price and date\n5. rate according to agency\n6. back"))) {
+                            "4. origin and destination and price and date\n5. back"))) {
                 case 1:
                     String origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
                             "ticket reservation", JOptionPane.QUESTION_MESSAGE);
-                    String destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
-                            "ticket reservation", JOptionPane.QUESTION_MESSAGE);
+                    ;String destination = JOptionPane.showInputDialog(null, "Please Enter your destination",
+                        "ticket reservation", JOptionPane.QUESTION_MESSAGE);
 
 
                     int idOriginCity1 = 0;
@@ -632,11 +675,14 @@ public class Human {
                     }
 
 
-                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                            "and destination = ? and vehicle = ?");
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                            "idTravel join agency on agency.id = idAgency where origin = ? and agency.rate between ? and ?" +
+                            "and destination = ? and vehicle = ? and rate");
                     preparedStatement.setInt(1, idOriginCity1);
                     preparedStatement.setInt(2, idOriginCity2);
                     preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                    preparedStatement.setInt(4, startRate);
+                    preparedStatement.setInt(5, endRate);
                     ResultSet resultSet = preparedStatement.executeQuery();
 
                     if (resultSet.next()) {
@@ -659,18 +705,21 @@ public class Human {
                                 return;
                             } else {
 
-                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                        "and destination = ? and vehicle = ?");
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                        "idTravel join agency on agency.id = idAgency where origin = ? and agency.rate between ? and ?" +
+                                        "and destination = ? and vehicle = ? and rate");
                                 preparedStatement.setInt(1, idOriginCity1);
                                 preparedStatement.setInt(2, idOriginCity2);
                                 preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
+                                preparedStatement.setInt(4, startRate);
+                                preparedStatement.setInt(5, endRate);
                                 resultSet = preparedStatement.executeQuery();
 
                                 int counter = 1;
                                 while (resultSet.next()) {
 
 
-                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    pkOfTravels.add(resultSet.getInt("travel.id"));
                                     allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
                                             append("time : " + resultSet.getString("time") + "\n").append("origin : " +
                                                     origin + "\n").
@@ -725,13 +774,16 @@ public class Human {
                     }
 
 
-                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = idTravel" +
+                            " join agency on agency.id = idAgency where origin = ?" +
+                            "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ?");
                     preparedStatement.setInt(1, idOriginCity1);
                     preparedStatement.setInt(2, idOriginCity2);
                     preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
                     preparedStatement.setInt(4, startPrice);
                     preparedStatement.setInt(5, endPrice);
+                    preparedStatement.setInt(6, startRate);
+                    preparedStatement.setInt(7, endRate);
                     resultSet = preparedStatement.executeQuery();
 
                     if (resultSet.next()) {
@@ -754,20 +806,23 @@ public class Human {
                                 return;
                             } else {
 
-                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                        "and destination = ? and vehicle = ? and price between ? and ? ");
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = idTravel" +
+                                        " join agency on agency.id = idAgency where origin = ?" +
+                                        "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ?");
                                 preparedStatement.setInt(1, idOriginCity1);
                                 preparedStatement.setInt(2, idOriginCity2);
                                 preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
                                 preparedStatement.setInt(4, startPrice);
                                 preparedStatement.setInt(5, endPrice);
+                                preparedStatement.setInt(6, startRate);
+                                preparedStatement.setInt(7, endRate);
                                 resultSet = preparedStatement.executeQuery();
 
                                 int counter = 1;
                                 while (resultSet.next()) {
 
 
-                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    pkOfTravels.add(resultSet.getInt("travel.id"));
                                     allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
                                             append("time : " + resultSet.getString("time") + "\n").append("origin : " +
                                                     origin + "\n").
@@ -823,13 +878,16 @@ public class Human {
                     }
 
 
-                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = \" +\n" +
+                            "                            \"idTravel join agency on agency.id = idAgency where origin = ?" +
+                            "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ? ");
                     preparedStatement.setInt(1, idOriginCity1);
                     preparedStatement.setInt(2, idOriginCity2);
                     preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
                     preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
                     preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                    preparedStatement.setInt(6, startRate);
+                    preparedStatement.setInt(7, endRate);
                     resultSet = preparedStatement.executeQuery();
 
                     if (resultSet.next()) {
@@ -852,20 +910,23 @@ public class Human {
                                 return;
                             } else {
 
-                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                        "and destination = ? and vehicle = ? and price between ? and ? ");
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = \" +\n" +
+                                        "                            \"idTravel join agency on agency.id = idAgency where origin = ?" +
+                                        "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ? ");
                                 preparedStatement.setInt(1, idOriginCity1);
                                 preparedStatement.setInt(2, idOriginCity2);
                                 preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
                                 preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
                                 preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                                preparedStatement.setInt(6, startRate);
+                                preparedStatement.setInt(7, endRate);
                                 resultSet = preparedStatement.executeQuery();
 
                                 int counter = 1;
                                 while (resultSet.next()) {
 
 
-                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    pkOfTravels.add(resultSet.getInt("travel.id"));
                                     allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
                                             append("time : " + resultSet.getString("time") + "\n").append("origin : " +
                                                     origin + "\n").
@@ -921,8 +982,9 @@ public class Human {
                     }
 
 
-                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                            "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                    preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = idTravel" +
+                            " join agency on agency.id = idAgency where origin = ?" +
+                            "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? and agency.rate between ? and ? ");
                     preparedStatement.setInt(1, idOriginCity1);
                     preparedStatement.setInt(2, idOriginCity2);
                     preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
@@ -930,6 +992,8 @@ public class Human {
                     preparedStatement.setInt(5, endPrice);
                     preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
                     preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                    preparedStatement.setInt(8, startRate);
+                    preparedStatement.setInt(9, endRate);
                     resultSet = preparedStatement.executeQuery();
 
                     if (resultSet.next()) {
@@ -943,17 +1007,16 @@ public class Human {
                                 JOptionPane.showMessageDialog(null, "It's a domestic flight," +
                                                 " please enter another origin and destination", "ticket reservation",
                                         JOptionPane.INFORMATION_MESSAGE);
-                                return;
                             } else if (getCountryFromCity(origin).
                                     equals(getCountryFromCity(destination)) && domesticAbroad == 2) {
                                 JOptionPane.showMessageDialog(null, "It's an abroad flight," +
                                                 " please enter another origin and destination", "ticket reservation",
                                         JOptionPane.INFORMATION_MESSAGE);
-                                return;
                             } else {
 
-                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                        "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = idTravel" +
+                                        " join agency on agency.id = idAgency where origin = ?" +
+                                        "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? and agency.rate between ? and ? ");
                                 preparedStatement.setInt(1, idOriginCity1);
                                 preparedStatement.setInt(2, idOriginCity2);
                                 preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
@@ -961,13 +1024,15 @@ public class Human {
                                 preparedStatement.setInt(5, endPrice);
                                 preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
                                 preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                                preparedStatement.setInt(8, startRate);
+                                preparedStatement.setInt(9, endRate);
                                 resultSet = preparedStatement.executeQuery();
 
                                 int counter = 1;
                                 while (resultSet.next()) {
 
 
-                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    pkOfTravels.add(resultSet.getInt("travel.id"));
                                     allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
                                             append("time : " + resultSet.getString("time") + "\n").append("origin : " +
                                                     origin + "\n").
@@ -992,7 +1057,6 @@ public class Human {
                             JOptionPane.showMessageDialog(null, "there is no origin or destination such that " +
                                             "please try again", "ticket reservation",
                                     JOptionPane.INFORMATION_MESSAGE);
-                            return;
                         }
                     }
             }
@@ -1027,10 +1091,39 @@ public class Human {
     public static void searchForTrainOrBus(Human passenger, int trainOrBus) throws SQLException {
         ArrayList<Integer> pkOfTravels = new ArrayList<>();
         StringBuilder allTravels = new StringBuilder();
+
+
         try {
             Class.forName("org.postgresql.Driver");
             Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
                     "aliiiw", "ali123");
+
+
+            int startRate = 0;
+            int endRate = 0;
+
+            ArrayList<String> options = new ArrayList<>();
+
+            options.add("yes");
+            options.add("no");
+
+            int chosen = JOptionPane.showOptionDialog(null, "do you want to determine the rate of " +
+                            "agency?" + "\n", "ticket reservation",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.INFORMATION_MESSAGE, null, options.toArray(), options.get(0));
+
+            if(chosen == 0){
+                startRate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the start of rate range",
+                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+                endRate = Integer.parseInt(JOptionPane.showInputDialog(null, "Please Enter the end of rate range",
+                        "ticket reservation", JOptionPane.QUESTION_MESSAGE));
+
+
+            }
+            else if (chosen == 1){
+                startRate = 1;
+                endRate = 5;
+
+            }
 
             switch (Integer.parseInt(JOptionPane.showInputDialog(null,
                     "On what basis do you want to filter it? :\n1. origin and destination \n" +
@@ -1060,20 +1153,25 @@ public class Human {
 
 
                     ResultSet resultSet = null;
-                    if(trainOrBus == 1){
-                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                            "and destination = ? and vehicle = ?");
-                    preparedStatement.setInt(1, idOriginCity1);
-                    preparedStatement.setInt(2, idOriginCity2);
-                    preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
-                    resultSet = preparedStatement.executeQuery();
-                    }
-                    else if(trainOrBus == 2){
-                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                "and destination = ? and vehicle = ?");
+                    if (trainOrBus == 1) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                "idTravel join agency on agency.id = idAgency where origin = ?" +
+                                "and destination = ? and vehicle = ? and agency.rate between ? and ?");
+                        preparedStatement.setInt(1, idOriginCity1);
+                        preparedStatement.setInt(2, idOriginCity2);
+                        preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                        preparedStatement.setInt(4, startRate);
+                        preparedStatement.setInt(5, endRate);
+                        resultSet = preparedStatement.executeQuery();
+                    } else if (trainOrBus == 2) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                "idTravel join agency on agency.id = idAgency where origin = ?" +
+                                "and destination = ? and vehicle = ? and agency.rate between ? and ?");
                         preparedStatement.setInt(1, idOriginCity1);
                         preparedStatement.setInt(2, idOriginCity2);
                         preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                        preparedStatement.setInt(4, startRate);
+                        preparedStatement.setInt(5, endRate);
                         resultSet = preparedStatement.executeQuery();
                     }
 
@@ -1093,28 +1191,35 @@ public class Human {
                         } else {
 
                             resultSet = null;
-                            if(trainOrBus == 1){
-                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                        "and destination = ? and vehicle = ?");
+                            if (trainOrBus == 1) {
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                        "idTravel join agency on agency.id = idAgency where origin = ?" +
+                                        "and destination = ? and vehicle = ? and agency.rate between ? and ?");
                                 preparedStatement.setInt(1, idOriginCity1);
                                 preparedStatement.setInt(2, idOriginCity2);
                                 preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                                preparedStatement.setInt(4, startRate);
+                                preparedStatement.setInt(5, endRate);
                                 resultSet = preparedStatement.executeQuery();
-                            }
-                            else if(trainOrBus == 2){
-                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                        "and destination = ? and vehicle = ?");
+                            } else if (trainOrBus == 2) {
+                                preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                        "idTravel join agency on agency.id = idAgency where origin = ?" +
+                                        "and destination = ? and vehicle = ? and agency.rate between ? and ?");
                                 preparedStatement.setInt(1, idOriginCity1);
                                 preparedStatement.setInt(2, idOriginCity2);
                                 preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                                preparedStatement.setInt(4, startRate);
+                                preparedStatement.setInt(5, endRate);
                                 resultSet = preparedStatement.executeQuery();
                             }
 
                             int counter = 1;
-                            while (resultSet.next()) {
+                            while (true) {
+                                assert resultSet != null;
+                                if (!resultSet.next()) break;
 
 
-                                pkOfTravels.add(resultSet.getInt("id"));
+                                pkOfTravels.add(resultSet.getInt("travel.id"));
                                 allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
                                         append("time : " + resultSet.getString("time") + "\n").append("origin : " +
                                                 origin + "\n").
@@ -1170,25 +1275,30 @@ public class Human {
 
 
                     resultSet = null;
-                    if(trainOrBus == 1){
-                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                            "and destination = ? and vehicle = ? and price between ? and ? ");
-                    preparedStatement.setInt(1, idOriginCity1);
-                    preparedStatement.setInt(2, idOriginCity2);
-                    preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
-                    preparedStatement.setInt(4, startPrice);
-                    preparedStatement.setInt(5, endPrice);
-                    resultSet = preparedStatement.executeQuery();
-                    }
-                    else if (trainOrBus == 2){
-                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                "and destination = ? and vehicle = ? and price between ? and ? ");
+                    if (trainOrBus == 1) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                "idTravel join agency on agency.id = idAgency where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ?  ");
+                        preparedStatement.setInt(1, idOriginCity1);
+                        preparedStatement.setInt(2, idOriginCity2);
+                        preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                        preparedStatement.setInt(4, startPrice);
+                        preparedStatement.setInt(5, endPrice);
+                        preparedStatement.setInt(6, startRate);
+                        preparedStatement.setInt(7, endRate);
+
+                        resultSet = preparedStatement.executeQuery();
+                    } else if (trainOrBus == 2) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                "idTravel join agency on agency.id = idAgency where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ?  ");
                         preparedStatement.setInt(1, idOriginCity1);
                         preparedStatement.setInt(2, idOriginCity2);
                         preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
                         preparedStatement.setInt(4, startPrice);
                         preparedStatement.setInt(5, endPrice);
-                        resultSet = preparedStatement.executeQuery();
+                        preparedStatement.setInt(6, startRate);
+                        preparedStatement.setInt(7, endRate);
                     }
 
                     if (resultSet.next()) {
@@ -1205,32 +1315,37 @@ public class Human {
                                 return;
                             } else {
 
-                                if(trainOrBus == 1){
-                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                                if (trainOrBus == 1) {
+                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                            "idTravel join agency on agency.id = idAgency where origin = ?" +
+                                            "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ?  ");
                                     preparedStatement.setInt(1, idOriginCity1);
                                     preparedStatement.setInt(2, idOriginCity2);
                                     preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
                                     preparedStatement.setInt(4, startPrice);
                                     preparedStatement.setInt(5, endPrice);
+                                    preparedStatement.setInt(6, startRate);
+                                    preparedStatement.setInt(7, endRate);
+
                                     resultSet = preparedStatement.executeQuery();
-                                }
-                                else if (trainOrBus == 2){
-                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                            "and destination = ? and vehicle = ? and price between ? and ? ");
+                                } else if (trainOrBus == 2) {
+                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on travel.id = " +
+                                            "idTravel join agency on agency.id = idAgency where origin = ?" +
+                                            "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ?  ");
                                     preparedStatement.setInt(1, idOriginCity1);
                                     preparedStatement.setInt(2, idOriginCity2);
                                     preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
                                     preparedStatement.setInt(4, startPrice);
                                     preparedStatement.setInt(5, endPrice);
-                                    resultSet = preparedStatement.executeQuery();
+                                    preparedStatement.setInt(6, startRate);
+                                    preparedStatement.setInt(7, endRate);
                                 }
 
                                 int counter = 1;
                                 while (resultSet.next()) {
 
 
-                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    pkOfTravels.add(resultSet.getInt("travel.id"));
                                     allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
                                             append("time : " + resultSet.getString("time") + "\n").append("origin : " +
                                                     origin + "\n").
@@ -1286,25 +1401,29 @@ public class Human {
                     }
 
                     resultSet = null;
-                    if(trainOrBus == 1) {
-                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                "and destination = ? and vehicle = ? and price between ? and ? ");
+                    if (trainOrBus == 1) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on" +
+                                " travel.id = idTravel join agency on agency.id = idAgency where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ? ");
                         preparedStatement.setInt(1, idOriginCity1);
                         preparedStatement.setInt(2, idOriginCity2);
                         preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
                         preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
                         preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
+                        preparedStatement.setInt(6, startRate);
+                        preparedStatement.setInt(7, endRate);
                         resultSet = preparedStatement.executeQuery();
-                    }
-                    else if(trainOrBus == 2) {
-                        preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                "and destination = ? and vehicle = ? and price between ? and ? ");
+                    } else if (trainOrBus == 2) {
+                        preparedStatement = connection.prepareStatement("SELECT * FROM travel join agency_travel on" +
+                                " travel.id = idTravel join agency on agency.id = idAgency where origin = ?" +
+                                "and destination = ? and vehicle = ? and price between ? and ? and agency.rate between ? and ? ");
                         preparedStatement.setInt(1, idOriginCity1);
                         preparedStatement.setInt(2, idOriginCity2);
                         preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
                         preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
                         preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
-                        resultSet = preparedStatement.executeQuery();
+                        preparedStatement.setInt(6, startRate);
+                        preparedStatement.setInt(7, endRate);
                     }
 
                     if (resultSet.next()) {
@@ -1321,7 +1440,7 @@ public class Human {
                                 return;
                             } else {
 
-                                if(trainOrBus == 1) {
+                                if (trainOrBus == 1) {
                                     preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
                                             "and destination = ? and vehicle = ? and price between ? and ? ");
                                     preparedStatement.setInt(1, idOriginCity1);
@@ -1330,8 +1449,7 @@ public class Human {
                                     preparedStatement.setDate(4, java.sql.Date.valueOf(startDate));
                                     preparedStatement.setDate(5, java.sql.Date.valueOf(endDate));
                                     resultSet = preparedStatement.executeQuery();
-                                }
-                                else if(trainOrBus == 2) {
+                                } else if (trainOrBus == 2) {
                                     preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
                                             "and destination = ? and vehicle = ? and price between ? and ? ");
                                     preparedStatement.setInt(1, idOriginCity1);
@@ -1371,6 +1489,7 @@ public class Human {
 
 
                     }
+                    break;
                 case 4:
                     origin = JOptionPane.showInputDialog(null, "Please Enter your origin",
                             "ticket reservation", JOptionPane.QUESTION_MESSAGE);
@@ -1402,7 +1521,7 @@ public class Human {
                     }
 
                     resultSet = null;
-                    if(trainOrBus == 1) {
+                    if (trainOrBus == 1) {
                         preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
                                 "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
                         preparedStatement.setInt(1, idOriginCity1);
@@ -1413,8 +1532,7 @@ public class Human {
                         preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
                         preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
                         resultSet = preparedStatement.executeQuery();
-                    }
-                    else if(trainOrBus == 2) {
+                    } else if (trainOrBus == 2) {
                         preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
                                 "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
                         preparedStatement.setInt(1, idOriginCity1);
@@ -1441,22 +1559,35 @@ public class Human {
                                 return;
                             } else {
 
-                                preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
-                                        "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
-                                preparedStatement.setInt(1, idOriginCity1);
-                                preparedStatement.setInt(2, idOriginCity2);
-                                preparedStatement.setObject(3, Vehicle.Airplane, Types.OTHER);
-                                preparedStatement.setInt(4, startPrice);
-                                preparedStatement.setInt(5, endPrice);
-                                preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
-                                preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
-                                resultSet = preparedStatement.executeQuery();
+                                if (trainOrBus == 1) {
+                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                            "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                                    preparedStatement.setInt(1, idOriginCity1);
+                                    preparedStatement.setInt(2, idOriginCity2);
+                                    preparedStatement.setObject(3, Vehicle.Train, Types.OTHER);
+                                    preparedStatement.setInt(4, startPrice);
+                                    preparedStatement.setInt(5, endPrice);
+                                    preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
+                                    preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                                    resultSet = preparedStatement.executeQuery();
+                                } else if (trainOrBus == 2) {
+                                    preparedStatement = connection.prepareStatement("SELECT * FROM travel where origin = ?" +
+                                            "and destination = ? and vehicle = ? and price between ? and ? and date between ? and ? ");
+                                    preparedStatement.setInt(1, idOriginCity1);
+                                    preparedStatement.setInt(2, idOriginCity2);
+                                    preparedStatement.setObject(3, Vehicle.Bus, Types.OTHER);
+                                    preparedStatement.setInt(4, startPrice);
+                                    preparedStatement.setInt(5, endPrice);
+                                    preparedStatement.setDate(6, java.sql.Date.valueOf(startDate));
+                                    preparedStatement.setDate(7, java.sql.Date.valueOf(endDate));
+                                    resultSet = preparedStatement.executeQuery();
+                                }
 
                                 int counter = 1;
                                 while (resultSet.next()) {
 
 
-                                    pkOfTravels.add(resultSet.getInt("id"));
+                                    pkOfTravels.add(resultSet.getInt("travel.id"));
                                     allTravels = allTravels.append(counter + " - " + "Date : " + resultSet.getString("date") + "\n").
                                             append("time : " + resultSet.getString("time") + "\n").append("origin : " +
                                                     origin + "\n").
@@ -1472,7 +1603,6 @@ public class Human {
                                 if (myTravel > 0) {
                                     passenger.reserveTicket(pkOfTravels.get(myTravel - 1));
                                 } else if (myTravel == 0) {
-                                    return;
                                 }
                             }
 
@@ -1481,10 +1611,11 @@ public class Human {
                             JOptionPane.showMessageDialog(null, "there is no origin or destination such that " +
                                             "please try again", "ticket reservation",
                                     JOptionPane.INFORMATION_MESSAGE);
-                            return;
                         }
                     }
+
             }
+
         } catch (
                 ClassNotFoundException e) {
             e.printStackTrace();
@@ -1925,6 +2056,26 @@ public class Human {
 
             } else if (myTravel == 0) {
             }
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void selectBaseOnRate() throws SQLException {
+
+        try {
+            Class.forName("org.postgresql.Driver");
+            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                    "aliiiw", "ali123");
+            PreparedStatement preparedStatement = connection.prepareStatement("SELECT AVG(travel.rate), agency.name FROM agency_travel join " +
+                    "travel on idTravel = travel.id join agency on agency.id = idAgency GROUP BY agency.name WHERE " +
+                    "travel.vehicle = ?");
+            preparedStatement.setObject(1, Vehicle.Bus, Types.OTHER);
+
+
+            ResultSet agencyRate = preparedStatement.executeQuery();
+
+
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
