@@ -10,6 +10,7 @@ public class Main {
     public static LocalTime timeTrack;
 
     public static void main(String[] args) throws SQLException, ClassNotFoundException {
+
         JDialog.setDefaultLookAndFeelDecorated(true);
         JOptionPane.showMessageDialog(null, "--- Welcome To Fly Mars --- ",
                 "Welcome", JOptionPane.INFORMATION_MESSAGE);
@@ -28,7 +29,7 @@ public class Main {
                     Human currentHuman = Human.logIn();
                     Role currentRole = currentHuman.getRole();
 
-                    switch (currentRole) {
+                    switch (currentRole){
                         case PASSENGER:
                             Human.passengerPanel(currentHuman);
                             break;
@@ -44,7 +45,7 @@ public class Main {
                     Human.signUp();
                     continue;
                 case 3:
-                    JOptionPane.showMessageDialog(null, " Thank you ! \uD83D\uDE09",
+                    JOptionPane.showMessageDialog(null, "Thank you ! \uD83D\uDE09",
                             "Exit Page", JOptionPane.INFORMATION_MESSAGE);
                     isAppRunning = false;
                     break;
@@ -53,14 +54,13 @@ public class Main {
         }
     }
 
-    public static String generateOTPCode() {
+    public static String generateOTPCode(){
         Random rnd = new Random();
         int number = rnd.nextInt(999999);
 
         return String.format("%06d", number);
     }
 
-    //Tested
     public static void changeTravelStatus(String timeNow) {
 
         try {
