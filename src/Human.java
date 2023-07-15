@@ -449,97 +449,97 @@ public class Human {
     }
 
 
-        public static void passengerPanel(Human passenger) throws SQLException {
+    public static void passengerPanel(Human passenger) throws SQLException {
 
-            Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
-                    "aliiiw", "ali123");
+        Connection connection = DriverManager.getConnection("jdbc:postgresql://185.135.229.14:5432/dbproject",
+                "aliiiw", "ali123");
 
 
-            boolean isInHomePage = true;
-            while (isInHomePage) {
-                int chosenOption = Integer.parseInt(JOptionPane.showInputDialog(null,
-                        "Please choose an option :\n1. buy ticket\n2. See Profile\n3. Log Out\n4. SendMessage to SuperAdmin\n5. See Chat With SuperAdmin\n",
-                        "Home page", JOptionPane.QUESTION_MESSAGE));
-                switch (chosenOption) {
-                    case 1:
-                        switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
-                                "an option :\n1. search for a ticket \n2. my reserved tickets\n" +
-                                "3. my purchased tickets\n4. cancel my ticket\n5. rate the travel\n6. back"))) {
-                            case 1:
-                                boolean isInSearchForTicketWithFilter = true;
-                                while (isInSearchForTicketWithFilter) {
-                                    switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
-                                            "your travel type :\n1. domestic flight \n2. abroad flight\n" +
-                                            "3. train\n4. bus\n5. back"))) {
-                                        case 1:
-                                            searchForFlight(passenger, 1);
-                                            isInSearchForTicketWithFilter = false;
-                                            break;
-                                        case 2:
-                                            searchForFlight(passenger, 2);
-                                            isInSearchForTicketWithFilter = false;
-                                            break;
-                                        case 3:
-                                            searchForTrainOrBus(passenger, 1);
-                                            isInSearchForTicketWithFilter = false;
-                                            break;
-                                        case 4:
-                                            searchForTrainOrBus(passenger, 2);
-                                            isInSearchForTicketWithFilter = false;
-                                            break;
-                                        case 5:
-                                            isInSearchForTicketWithFilter = false;
-                                            break;
-                                    }
+        boolean isInHomePage = true;
+        while (isInHomePage) {
+            int chosenOption = Integer.parseInt(JOptionPane.showInputDialog(null,
+                    "Please choose an option :\n1. buy ticket\n2. See Profile\n3. Log Out\n4. SendMessage to SuperAdmin\n5. See Chat With SuperAdmin\n",
+                    "Home page", JOptionPane.QUESTION_MESSAGE));
+            switch (chosenOption) {
+                case 1:
+                    switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
+                            "an option :\n1. search for a ticket \n2. my reserved tickets\n" +
+                            "3. my purchased tickets\n4. cancel my ticket\n5. rate the travel\n6. back"))) {
+                        case 1:
+                            boolean isInSearchForTicketWithFilter = true;
+                            while (isInSearchForTicketWithFilter) {
+                                switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
+                                        "your travel type :\n1. domestic flight \n2. abroad flight\n" +
+                                        "3. train\n4. bus\n5. back"))) {
+                                    case 1:
+                                        searchForFlight(passenger, 1);
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
+                                    case 2:
+                                        searchForFlight(passenger, 2);
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
+                                    case 3:
+                                        searchForTrainOrBus(passenger, 1);
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
+                                    case 4:
+                                        searchForTrainOrBus(passenger, 2);
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
+                                    case 5:
+                                        isInSearchForTicketWithFilter = false;
+                                        break;
                                 }
-                                break;
-                            case 2:
-                                passenger.showAllMyReservedTickets(passenger);
-                                break;
+                            }
+                            break;
+                        case 2:
+                            passenger.showAllMyReservedTickets(passenger);
+                            break;
 
-                            case 3:
-                                passenger.showAllMyPurchasedTickets();
-                                break;
-                            case 4:
-                                passenger.cancelTheTravel();
-                                break;
-                            case 5:
-                                passenger.rateToTravel();
-                                break;
-                            case 6:
-                                break;
+                        case 3:
+                            passenger.showAllMyPurchasedTickets();
+                            break;
+                        case 4:
+                            passenger.cancelTheTravel();
+                            break;
+                        case 5:
+                            passenger.rateToTravel();
+                            break;
+                        case 6:
+                            break;
 
-                        }
-                        break;
+                    }
+                    break;
 
-                    case 2:
-                        switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
-                                "an option :\n1. Show all my detail\n2. Edit Profile\n3. back"))) {
-                            case 1:
-                                passenger.seeProfile();
-                                break;
-                            case 2:
-                                passenger.editProfile();
-                                break;
-                            case 3:
-                                break;
-                        }
-                        break;
-                    case 3:
-                        isInHomePage = false;
-                        break;
-                    case 4:
-                        sendMessageReplyToUser(passenger.getPrimaryKey(), 44);
-                        break;
-                    case 5:
-                        StringBuilder stringBuilder = new StringBuilder();
-                        stringBuilder = seeChatWithUser(passenger.getPrimaryKey(), 44);
-                        JOptionPane.showInputDialog(null, "These are your Chats\n " + stringBuilder,
-                                "Chat Page", JOptionPane.INFORMATION_MESSAGE);
-                        break;
-                }
+                case 2:
+                    switch (Integer.parseInt(JOptionPane.showInputDialog(null, "Please choose " +
+                            "an option :\n1. Show all my detail\n2. Edit Profile\n3. back"))) {
+                        case 1:
+                            passenger.seeProfile();
+                            break;
+                        case 2:
+                            passenger.editProfile();
+                            break;
+                        case 3:
+                            break;
+                    }
+                    break;
+                case 3:
+                    isInHomePage = false;
+                    break;
+                case 4:
+                    sendMessageReplyToUser(passenger.getPrimaryKey(), 44);
+                    break;
+                case 5:
+                    StringBuilder stringBuilder = new StringBuilder();
+                    stringBuilder = seeChatWithUser(passenger.getPrimaryKey(), 44);
+                    JOptionPane.showInputDialog(null, "These are your Chats\n " + stringBuilder,
+                            "Chat Page", JOptionPane.INFORMATION_MESSAGE);
+                    break;
             }
         }
+    }
 
 
     public void editProfile() throws SQLException {
